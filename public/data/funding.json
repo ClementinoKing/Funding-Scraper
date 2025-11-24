@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-11-23T17:39:47.519Z",
+  "lastUpdated": "2025-11-24T03:54:43.039Z",
   "programs": [
     {
       "name": "Funding instruments - Technology Innovation Agency",
@@ -652,30 +652,6 @@
       "sectors": "enterprise"
     },
     {
-      "name": "Financial Support",
-      "summary": "Our financial support products include:",
-      "source": "https://www.gep.co.za/what-we-do/financial-support/",
-      "eligibility": "ication criteria for loans. Our financial support products include: Start-up Finance Contract Finance. Growth Finance Franchise Finance GEP Micro-finance *Applicants for contract finance are allowed more than one",
-      "fundingAmount": "",
-      "deadlines": "",
-      "contactEmail": "",
-      "contactPhone": "",
-      "applicationProcess": "APPLICATION PROCESS All applications for funding are done online using the GEP Online Application System; how to apply online GEP Financial Support  Township Economy Partnership Fund  SMME CRISIS PARTNERSHIP Fund  Gauteng Rebuild Fund  Partnership Marketing and Sponsorship",
-      "sectors": "enterprise, services, finance"
-    },
-    {
-      "name": "Non-financial Support",
-      "summary": "Gauteng Enterprise Propeller provides business development support interventions that play a catalytic role in transforming SMMEs, Co-operatives and Informal Traders towards being sustainable businesses.",
-      "source": "https://www.gep.co.za/what-we-do/non-financial-support/",
-      "eligibility": "",
-      "fundingAmount": "",
-      "deadlines": "",
-      "contactEmail": "",
-      "contactPhone": "",
-      "applicationProcess": "provides business development support interventions that play a catalytic role in transforming SMMEs, Co-operatives and Informal Traders towards being sustainable businesses. The Non-Financial support program is offered through the Regional Offices and includes: Gauteng’s revitalised township economies contributing to shared economic growth and development Gauteng’s SMMEs and Co-operatives actively participating in the province’s mainstream economy, including in the key economic sectors. Township Economies Revitalisation (TER) and Gauteng Informal Business Upliftment Strategy (GIBUS) projects effectively implemented. Non-Financial Support Programmes Accredited Training offered by accredited training providers In-house Training/Workshop offered by GEP officials Training by Corporate Partners offered through strategic partnerships Our training interventions include: Cooperatives Governance Business Plan Development Pricing and Costing Sales and Marketing Business Management Skills Bookkeeping Skills Financial Literacy skills Tendering Skills Entrepreneurship Skills Business Development Support Interventions PLANNING SUPPORT INTERVENTIONS Business plan Business expansion plan Business turnaround plan Productivity improvement plan Accounting / Bookkeeping Preparation of budgets Setting up debtors / creditors system Setting up a Stock Control System Costing & Pricing Cash Flow Management System Electronic Financial Management System Manual Financial Management System Marketing plan & strategy Printed Marketing Material (Can include Company logo, business cards, brochures, pamphlets, catalogues, magnetic car stickers, sign boards, street pole adds, document folders, letterheads, product labels)",
-      "sectors": "enterprise, finance"
-    },
-    {
       "name": "Overview",
       "summary": "Ithala’s Business Finance Unit is responsible for facilitating the development and empowerment of KwaZulu-Natal-based business enterprises, in addition must be promote job creation in the province.",
       "source": "https://www.ithala.co.za/business-finance/",
@@ -727,7 +703,7 @@
       "name": "Business Loan",
       "summary": "LEDA",
       "source": "https://www.lieda.co.za/index.php/business-loan/",
-      "eligibility": "ICATION CRITERIA FOR BUSINESS LOAN (LONG-TERM LOAN)|",
+      "eligibility": "ICATION CRITERIA FOR BUSINESS LOAN (LONG-TERM LOAN) |",
       "fundingAmount": "",
       "deadlines": "",
       "contactEmail": "",
@@ -739,7 +715,7 @@
       "name": "Procurement Loan",
       "summary": "LEDA",
       "source": "https://www.lieda.co.za/index.php/procurement-loan/",
-      "eligibility": "ICATION CRITERIA FOR PROCUREMENT LOAN/ORDER (ONE MONTH)|",
+      "eligibility": "ICATION CRITERIA FOR PROCUREMENT LOAN/ORDER (ONE MONTH) |",
       "fundingAmount": "",
       "deadlines": "",
       "contactEmail": "",

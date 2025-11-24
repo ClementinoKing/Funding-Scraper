@@ -1,17 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
-import AccountCreation from './pages/AccountCreation.jsx'
-import Dashboard from './pages/Dashboard.jsx'
-import FundingDetail from './pages/FundingDetail.jsx'
-import SubprogramDetail from './pages/SubprogramDetail.jsx'
-import SavedPrograms from './pages/SavedPrograms.jsx'
-import Profile from './pages/Profile.jsx'
-import SearchResults from './pages/SearchResults.jsx'
 import ProtectedRoute from './routes/ProtectedRoute.jsx'
 import { supabase } from './lib/supabase'
 import { setToken, setUser, clearToken, clearUser } from './lib/auth'
+import { FullPageLoader } from './components/LoadingSpinner.jsx'
+
+// Lazy load pages for code splitting
+const Login = lazy(() => import('./pages/Login.jsx'))
+const Register = lazy(() => import('./pages/Register.jsx'))
+const AccountCreation = lazy(() => import('./pages/AccountCreation.jsx'))
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
+const FundingDetail = lazy(() => import('./pages/FundingDetail.jsx'))
+const SubprogramDetail = lazy(() => import('./pages/SubprogramDetail.jsx'))
+const SavedPrograms = lazy(() => import('./pages/SavedPrograms.jsx'))
+const Profile = lazy(() => import('./pages/Profile.jsx'))
+const Settings = lazy(() => import('./pages/Settings.jsx'))
+const SearchResults = lazy(() => import('./pages/SearchResults.jsx'))
 
 function App() {
   useEffect(() => {
@@ -41,61 +45,71 @@ function App() {
   }, [])
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/account-creation" element={<AccountCreation />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/funding/:slug"
-        element={
-          <ProtectedRoute>
-            <FundingDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/funding/:parentSlug/subprogram/:subprogramSlug"
-        element={
-          <ProtectedRoute>
-            <SubprogramDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/saved"
-        element={
-          <ProtectedRoute>
-            <SavedPrograms />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/search"
-        element={
-          <ProtectedRoute>
-            <SearchResults />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
+    <Suspense fallback={<FullPageLoader />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/account-creation" element={<AccountCreation />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/funding/:slug"
+          element={
+            <ProtectedRoute>
+              <FundingDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/funding/:parentSlug/subprogram/:subprogramSlug"
+          element={
+            <ProtectedRoute>
+              <SubprogramDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/saved"
+          element={
+            <ProtectedRoute>
+              <SavedPrograms />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <SearchResults />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Suspense>
   )
 }
 

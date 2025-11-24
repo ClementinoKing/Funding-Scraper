@@ -214,7 +214,7 @@ export default function FundingDetail() {
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <Button 
             variant="outline" 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/dashboard')}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Dashboard
