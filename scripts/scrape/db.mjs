@@ -123,7 +123,7 @@ export async function insertPrograms(programs) {
       
       // Upsert programs based on slug
       const { data, error } = await supabase
-        .from('programs')
+        .from('programs_staging')
         .upsert(transformedBatch, {
           onConflict: 'slug',
           ignoreDuplicates: false,
@@ -155,7 +155,7 @@ export async function insertPrograms(programs) {
     try {
       const slugs = programs.map(p => p.slug || generateSlug(p.name, p.source))
       const { data, error } = await supabase
-        .from('programs')
+        .from('programs_staging')
         .select('id, slug')
         .in('slug', slugs)
 
@@ -197,7 +197,7 @@ export async function insertSubprograms(subprograms, programMap) {
       // Try to find by querying the database
       try {
         const { data, error } = await supabase
-          .from('programs')
+          .from('programs_staging')
           .select('id')
           .eq('slug', parentSlug)
           .maybeSingle()
@@ -243,7 +243,7 @@ export async function insertSubprograms(subprograms, programMap) {
     try {
       // Delete existing subprograms for this parent
       const { error: deleteError } = await supabase
-        .from('subprograms')
+        .from('subprograms_staging')
         .delete()
         .eq('parent_program_id', parentId)
 
@@ -274,7 +274,7 @@ export async function insertSubprograms(subprograms, programMap) {
         const transformedBatch = uniqueBatch.map(sub => transformSubprogram(sub, parentId))
         
         const { data, error } = await supabase
-          .from('subprograms')
+          .from('subprograms_staging')
           .insert(transformedBatch)
           .select()
 

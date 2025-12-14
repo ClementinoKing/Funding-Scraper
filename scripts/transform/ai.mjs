@@ -1,0 +1,80 @@
+import OpenAI from "openai";
+
+export async function fetchAiResponse(
+  payload,
+  apiKey,
+  provider = "openai",
+  pageText = ""
+) {
+  const systemPrompt = `
+You are a deterministic data-processing and normalization engine.
+
+Rules you MUST follow:
+- Output MUST be valid JSON only
+- No markdown, no commentary, no explanations
+- Do NOT infer missing data
+- Never hallucinate facts
+- Follow the schema EXACTLY
+- Use ONLY provided data
+- Prefer website content over raw scraped data if conflicts exist
+- If information is missing, write "Not specified" or null
+- Follow the schema EXACTLY
+`;
+
+  const userPrompt = `
+Transform the following raw database record into a clean, human-readable summary and structured insights. 
+Normalize this funding opportunity's data according to the schema provided below. 
+Use only the data given; do not infer or hallucinate any information. 
+If certain fields are missing, indicate them as "Not specified" or null as appropriate.
+
+SOURCE URL:
+${payload?.source || "Not specified"}
+
+WEBSITE CONTENT (if available):
+${pageText || "No website content provided."}
+
+RAW SCRAPED DATA (from database):
+${JSON.stringify(payload, null, 2)}
+
+Required JSON schema:
+{
+    "name": string,
+    "summary": string,
+    "source": string,
+    "eligibility": string,
+    "funding_amount": string,
+    "deadlines": string,
+    "contact_email": string | null,
+    "contact_phone": string | null,
+    "application_process": string,
+    "sectors": string,
+    "source_domain": string,
+    "slug": string,
+    "is_active": boolean,
+    "confidence": number
+}
+`;
+
+  if (provider === "openai") {
+    const client = new OpenAI({
+      apiKey: apiKey,
+    });
+
+    const response = await client.responses.create({
+      model: "gpt-5-nano",
+      instructions: systemPrompt,
+      input: userPrompt,
+    });
+
+    return response.output_text;
+  } else if (provider === "groq") {
+    const url = "https://api.groq.com/v1/chat/completions";
+
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    };
+  } else {
+    throw new Error(`Unsupported AI provider: ${provider}`);
+  }
+}
