@@ -27,6 +27,56 @@ Normalize this funding opportunity's data according to the schema provided below
 Use only the data given; do not infer or hallucinate any information. 
 If certain fields are missing, indicate them as "Not specified" or null as appropriate.
 
+KEYPOINTS:
+
+- Recreate the title to be clear and human friendly.
+- Regenerate the summary so it is clear, concise, and suitable for human readers.
+
+ELIGIBILITY (CRITICAL):
+- Eligibility describes WHO is allowed to apply.
+- Extract ONLY factual conditions explicitly stated in the content.
+- Look for eligibility information using these indicators:
+  /(eligib|requirements|qualif|who can apply|criteria|support|applicants must|open to)/i
+- Include conditions such as:
+  - organisation type (individuals, SMEs, startups, NGOs, companies, researchers, students)
+  - geographic restrictions (country, province, region)
+  - legal status (registered entity, tax compliant, licensed)
+  - demographic restrictions (age, gender, ethnicity) ONLY if explicitly stated
+  - sector or activity restrictions ONLY if framed as eligibility
+- EXCLUDE:
+  - application steps
+  - selection process descriptions
+  - evaluation criteria
+  - benefits or funding usage
+- If eligibility is spread across multiple sections, combine into a single readable paragraph.
+- If no explicit eligibility rules are stated, write exactly: "Not specified".
+
+- Funding amount must be explicit, include currency, and be human-readable
+  (e.g. "R 500 Thousand", "R 10 Million", "$100,000").
+
+- Deadlines must be a clear date ("31 December 2024"), "Open", or "Not specified".
+
+- Extract contact email and phone number if explicitly present; otherwise use null.
+
+APPLICATION PROCESS:
+- Summarize HOW to apply.
+- Include steps if available, otherwise a short descriptive paragraph.
+
+- Capture sectors clearly; if missing write "Not specified".
+
+AGE:
+- Extract age ONLY if explicitly stated.
+- Format as a range, e.g. "18-25".
+- If missing, write "Not specified".
+
+GENDER:
+- Extract gender ONLY if explicitly stated.
+- If missing, write "Not specified".
+
+ETHNICITY:
+- Extract ethnicity ONLY if explicitly stated.
+- If missing, write "Not specified".
+
 SOURCE URL:
 ${payload?.source || "Not specified"}
 
@@ -51,9 +101,14 @@ Required JSON schema:
     "source_domain": string,
     "slug": string,
     "is_active": boolean,
-    "confidence": number
+    "confidence": number,
+    "age": string,
+    "gender": string,
+    "ethnicity": string
 }
 `;
+  console.log("System Propmt: ",systemPrompt);
+  console.log("user propmt: ",userPrompt);
 
   if (provider === "openai") {
     const client = new OpenAI({

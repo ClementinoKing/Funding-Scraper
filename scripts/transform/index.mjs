@@ -32,12 +32,14 @@ async function transform () {
         const response = await fetchAiResponse(program, openai_key, ai_provider, htmlContent);
         const ai_response = JSON.parse(response);
         ai_response['staging_id'] = program.id;
+        ai_response['page_fetched'] = htmlContent !== "No website content provided.";
 
         const { data } = await supabase
             .from("programs")
             .insert([ai_response])
             .select();
         console.log(data)
+        console.log("\n\n\n")
     }
 }
 
