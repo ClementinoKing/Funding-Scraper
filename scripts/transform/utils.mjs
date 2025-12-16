@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { JSDOM } from "jsdom";
+import { chromium } from "playwright";
 
 export async function fetchPageText(url) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -64,4 +65,56 @@ export async function fetchPageText(url) {
   text = text.replace(/\s+/g, " ").trim();
 
   return text.slice(0, 25000); // Final truncation for token safety, recommended is 12k.
+}
+
+
+export function looksLikeLoaderPage(text) {
+  if (!text) return true;
+
+  const indicators = [
+    "loading",
+    "please wait",
+    "spinner",
+    "enable javascript",
+    "app-root",
+    "root",
+  ];
+
+  if (text.length < 500) return true;
+
+  return indicators.some(word =>
+    text.toLowerCase().includes(word)
+  );
+}
+
+export async function fetchPageTextWithBrowser(url) {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({
+    userAgent: "Mozilla/5.0 (compatible; DataBot/1.0)"
+  });
+
+  await page.goto(url, {
+    waitUntil: "networkidle",
+    timeout: 30000
+  });
+
+  // Wait for meaningful content
+  await page.waitForTimeout(3000);
+
+  const text = await page.evaluate(() => {
+    document
+      .querySelectorAll(
+        "script, style, nav, footer, header, aside, form, button, svg, img, link"
+      )
+      .forEach(e => e.remove());
+
+    return document.body?.innerText || "";
+  });
+
+  await browser.close();
+
+  return text
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 25000);
 }

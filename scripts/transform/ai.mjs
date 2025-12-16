@@ -30,11 +30,14 @@ If certain fields are missing, indicate them as "Not specified" or null as appro
 KEYPOINTS:
 
 - Recreate the title to be clear and human friendly.
-- Regenerate the summary so it is clear, concise, and suitable for human readers.
+- Regenerate the summary so it is clear, concise, and suitable for human readers. Make sure the summary captures the essence of the funding opportunity and it should never be empty or "Not specified".
 
 ELIGIBILITY (CRITICAL):
+- Capturing accurate eligibility criteria is a must no matter what, no blanks needed - write something based on the summary or the website content.
 - Eligibility describes WHO is allowed to apply.
 - Extract ONLY factual conditions explicitly stated in the content.
+- You can also use the raw scraped data for eligibility extraction.
+- The summary can also be used to find eligibility information.
 - Look for eligibility information using these indicators:
   /(eligib|requirements|qualif|who can apply|criteria|support|applicants must|open to)/i
 - Include conditions such as:
@@ -49,7 +52,6 @@ ELIGIBILITY (CRITICAL):
   - evaluation criteria
   - benefits or funding usage
 - If eligibility is spread across multiple sections, combine into a single readable paragraph.
-- If no explicit eligibility rules are stated, write exactly: "Not specified".
 
 - Funding amount must be explicit, include currency, and be human-readable
   (e.g. "R 500 Thousand", "R 10 Million", "$100,000").
