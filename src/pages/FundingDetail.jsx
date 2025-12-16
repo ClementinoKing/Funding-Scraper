@@ -4,10 +4,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { slugifyFunding } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
+import { slugifyFunding, cn } from '@/lib/utils'
 import { signOut } from '@/lib/auth'
 import { usePrograms } from '@/contexts/ProgramsContext'
 import { saveProgram, unsaveProgram, checkSavedStatus } from '@/lib/savedPrograms'
+import { supabase } from '@/lib/supabase'
+import { checkProgramQualification, filterQualifiedPrograms } from '@/lib/profileMatching'
+import { CircularProgress } from '@/components/CircularProgress'
 import {
   ArrowLeft,
   ExternalLink,
@@ -20,6 +24,9 @@ import {
   Share2,
   Copy,
   CheckCircle2,
+  Sparkles,
+  X,
+  AlertCircle,
 } from 'lucide-react'
 
 export default function FundingDetail() {
@@ -29,7 +36,37 @@ export default function FundingDetail() {
   const [copied, setCopied] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [userProfile, setUserProfile] = useState(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const error = contextError || ''
+
+  // Fetch user profile
+  useEffect(() => {
+    async function fetchUserProfile() {
+      try {
+        setProfileLoading(true)
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .single()
+          
+          if (!profileError && profile) {
+            setUserProfile(profile)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
 
   async function logout() {
     await signOut()
@@ -122,6 +159,12 @@ export default function FundingDetail() {
     }
   }
 
+  // Calculate match score for current program
+  const programQualification = useMemo(() => {
+    if (!program || !userProfile) return null
+    return checkProgramQualification(program, userProfile)
+  }, [program, userProfile])
+
   const siblingPrograms = useMemo(() => {
     if (!program || !program.source) return []
     let host = ''
@@ -129,7 +172,9 @@ export default function FundingDetail() {
       host = new URL(program.source).host
     } catch {}
     if (!host) return []
-    return programs.filter((p) => {
+    
+    // Get programs from same source
+    let relatedPrograms = programs.filter((p) => {
       if (!p?.source || p === program) return false
       if (!isValidProgram(p)) return false
       // Exclude subprograms (they have parentProgram field)
@@ -139,9 +184,17 @@ export default function FundingDetail() {
       } catch {
         return false
       }
-    }).slice(0, 5)
+    })
+
+    // If user has a profile, filter to only show matched programs
+    if (userProfile) {
+      const qualifiedPrograms = filterQualifiedPrograms(relatedPrograms, userProfile)
+      return qualifiedPrograms.slice(0, 5)
+    }
+    
+    return relatedPrograms.slice(0, 5)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [program, programs])
+  }, [program, programs, userProfile])
 
   const sourceDomain = program?.source ? (() => {
     try {
@@ -208,20 +261,20 @@ export default function FundingDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Header Actions */}
-        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Navigation Bar */}
+        <div className="mb-8 flex items-center justify-between">
           <Button 
-            variant="outline" 
+            variant="ghost" 
             onClick={() => navigate('/dashboard')}
-            className="gap-2"
+            className="gap-2 -ml-2"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+            <ArrowLeft className="w-4 h-4" /> Back
           </Button>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm"
               onClick={copyLink}
               className="gap-2"
@@ -232,12 +285,12 @@ export default function FundingDetail() {
                 </>
               ) : (
                 <>
-                  <Copy className="w-4 h-4" /> Copy Link
+                  <Copy className="w-4 h-4" /> Copy
                 </>
               )}
             </Button>
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               className="gap-2"
               onClick={handleSaveToggle}
@@ -245,207 +298,189 @@ export default function FundingDetail() {
             >
               {isSaved ? (
                 <>
-                  <BookmarkCheck className="w-4 h-4" /> Saved
+                  <BookmarkCheck className="w-4 h-4" />
                 </>
               ) : (
                 <>
-                  <Bookmark className="w-4 h-4" /> Save
+                  <Bookmark className="w-4 h-4" />
                 </>
               )}
             </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Share2 className="w-4 h-4" /> Share
-            </Button>
             {program.source && (
               <a href={program.source} target="_blank" rel="noreferrer">
-                <Button className="gap-2">
-                  <ExternalLink className="w-4 h-4" /> Visit Source
+                <Button size="sm" className="gap-2">
+                  <ExternalLink className="w-4 h-4" /> Apply
                 </Button>
               </a>
             )}
-            <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
-              Logout
-            </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="border-2">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between gap-4">
-                  <CardTitle className="text-3xl font-bold leading-tight">
+            {/* Hero Section */}
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                      <Building2 className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">{sourceDomain}</p>
+                      {profileLoading ? (
+                        <Skeleton className="h-5 w-24 mt-1" />
+                      ) : (
+                        programQualification && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge 
+                              variant={programQualification.qualifies ? "default" : "secondary"}
+                              className="gap-1.5 text-xs"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              {programQualification.score}% Match
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              Active
+                            </Badge>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  <h1 className="text-4xl font-bold tracking-tight leading-tight">
                     {program.name || 'Untitled program'}
-                  </CardTitle>
-                  <Badge variant="secondary" className="flex-shrink-0">
-                    Active
-                  </Badge>
+                  </h1>
                 </div>
-                <div className="flex items-center gap-2 mt-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                    <Building2 className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm text-muted-foreground">{sourceDomain}</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Quick Info Cards */}
-                {(program.fundingAmount || program.deadlines) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {program.fundingAmount && (
-                      <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-900">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                              <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Funding Amount</p>
-                              <p className="text-sm font-semibold text-foreground mt-0.5">
-                                {program.fundingAmount}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                    {program.deadlines && (
-                      <Card className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border-orange-200 dark:border-orange-900">
-                        <CardContent className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                              <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                            </div>
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground">Deadline</p>
-                              <p className="text-sm font-semibold text-foreground mt-0.5">
-                                {program.deadlines}
-                              </p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                )}
+              </div>
 
+              {/* Key Metrics */}
+              {(program.fundingAmount || program.deadlines) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  {program.fundingAmount && (
+                    <div className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                      <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                        <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Funding Amount</p>
+                        <p className="text-base font-semibold text-foreground mt-1 truncate">
+                          {program.fundingAmount}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {program.deadlines && (
+                    <div className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
+                      <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deadline</p>
+                        <p className="text-base font-semibold text-foreground mt-1 truncate">
+                          {program.deadlines}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Content Sections */}
+            <Card className="shadow-sm">
+              <CardContent className="p-6 space-y-8">
                 {/* Overview */}
-                <section>
-                  <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    Overview
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {program.summary || 'No summary available.'}
-                  </p>
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 pb-2">
+                    <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold">Overview</h2>
+                  </div>
+                  <div className="pl-10">
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                      {program.summary || 'No summary available.'}
+                    </p>
+                  </div>
                 </section>
 
-                <Separator />
+                <Separator className="my-8" />
 
                 {/* Eligibility */}
-                <section>
-                  <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    Eligibility Criteria
-                  </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {program.eligibility || 'Not specified.'}
-                  </p>
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2 pb-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold">Eligibility Criteria</h2>
+                  </div>
+                  <div className="pl-10">
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                      {program.eligibility || 'Not specified.'}
+                    </p>
+                  </div>
                 </section>
-
-                <Separator />
-
-                {/* Funding Details */}
-                {program.fundingAmount && (
-                  <>
-                    <section>
-                      <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                        <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
-                        Funding Details
-                      </h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {program.fundingAmount}
-                      </p>
-                    </section>
-                    <Separator />
-                  </>
-                )}
-
-                {/* Deadlines */}
-                {program.deadlines && (
-                  <>
-                    <section>
-                      <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                        Important Deadlines
-                      </h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {program.deadlines}
-                      </p>
-                    </section>
-                    <Separator />
-                  </>
-                )}
 
                 {/* Source */}
-                <section>
-                  <h2 className="text-xl font-semibold mb-3">Source</h2>
-                  {program.source ? (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <Badge variant="secondary" className="text-sm py-1.5 px-3">
-                        {program.source.replace(/^https?:\/\//, '')}
-                      </Badge>
-                      <a href={program.source} target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline" className="gap-2">
-                          <ExternalLink className="w-4 h-4" /> Open Original Page
-                        </Button>
-                      </a>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Not available.</p>
-                  )}
-                </section>
+                {program.source && (
+                  <>
+                    <Separator className="my-8" />
+                    <section className="space-y-3">
+                      <h2 className="text-lg font-semibold">Source</h2>
+                      <div className="pl-0 flex items-center gap-3 flex-wrap">
+                        <Badge variant="secondary" className="text-sm py-2 px-4 font-mono">
+                          {program.source.replace(/^https?:\/\//, '')}
+                        </Badge>
+                        <a href={program.source} target="_blank" rel="noreferrer">
+                          <Button variant="outline" size="sm" className="gap-2">
+                            <ExternalLink className="w-4 h-4" /> View Source
+                          </Button>
+                        </a>
+                      </div>
+                    </section>
+                  </>
+                )}
 
                 {/* Subprograms */}
                 {program.subprograms && program.subprograms.length > 0 && (
                   <>
-                    <Separator />
-                    <section>
-                      <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                        <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        Subprograms
-                      </h2>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        This program includes the following subprograms:
-                      </p>
-                      <div className="grid gap-3">
+                    <Separator className="my-8" />
+                    <section className="space-y-4">
+                      <div className="flex items-center gap-2 pb-2">
+                        <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                          <Building2 className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Subprograms</h2>
+                      </div>
+                      <div className="pl-10 space-y-3">
                         {program.subprograms.map((subprogram, idx) => (
-                          <Card key={idx} className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
+                          <Card key={idx} className="border-l-4 border-l-purple-500 hover:shadow-md transition-all">
+                            <CardContent className="p-5">
                               <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-base mb-2">{subprogram.name}</h3>
+                                <div className="flex-1 min-w-0 space-y-2">
+                                  <h3 className="font-semibold text-base leading-tight">{subprogram.name}</h3>
                                   {subprogram.summary && (
-                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                                       {subprogram.summary}
                                     </p>
                                   )}
-                                  <div className="flex flex-wrap gap-2 text-xs">
+                                  <div className="flex flex-wrap gap-2 pt-2">
                                     {subprogram.fundingAmount && (
-                                      <Badge variant="outline" className="gap-1">
+                                      <Badge variant="outline" className="gap-1.5 text-xs">
                                         <DollarSign className="w-3 h-3" />
                                         {subprogram.fundingAmount}
                                       </Badge>
                                     )}
                                     {subprogram.deadlines && (
-                                      <Badge variant="outline" className="gap-1">
+                                      <Badge variant="outline" className="gap-1.5 text-xs">
                                         <Calendar className="w-3 h-3" />
                                         {subprogram.deadlines}
                                       </Badge>
                                     )}
                                     {subprogram.sectors && (
-                                      <Badge variant="outline">
+                                      <Badge variant="outline" className="text-xs">
                                         {subprogram.sectors}
                                       </Badge>
                                     )}
@@ -475,31 +510,160 @@ export default function FundingDetail() {
 
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
+            {/* Match Score */}
+            {profileLoading ? (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex justify-center">
+                    <Skeleton className="h-40 w-40 rounded-full" />
+                  </div>
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : programQualification && userProfile ? (
+              <Card className="shadow-sm sticky top-8">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold">Match Score</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    How well this program matches your profile
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Circular Progress */}
+                  <div className="flex justify-center py-2">
+                    <CircularProgress 
+                      value={programQualification.score} 
+                      size={160}
+                      strokeWidth={10}
+                    />
+                  </div>
+
+                  {/* Score Breakdown */}
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold mb-3 text-foreground">Score Breakdown</h3>
+                    {programQualification.breakdown && programQualification.breakdown.length > 0 ? (
+                      (() => {
+                        const matchedItems = programQualification.breakdown.filter(item => item.points > 0)
+                        return matchedItems.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {matchedItems.map((item, index) => {
+                              return (
+                                <div 
+                                  key={index}
+                                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
+                                >
+                                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                    {item.partial ? (
+                                      <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                                    ) : (
+                                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                    )}
+                                    <span className="text-sm text-foreground truncate font-medium">
+                                      {item.criterion}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <span className={cn(
+                                      "text-sm font-semibold tabular-nums",
+                                      item.partial 
+                                        ? "text-yellow-600 dark:text-yellow-400"
+                                        : "text-green-600 dark:text-green-400"
+                                    )}>
+                                      {item.points}/{item.maxPoints}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-6">
+                            No matches found
+                          </p>
+                        )
+                      })()
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No breakdown available
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
             {/* Related Programs */}
-            {siblingPrograms.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Related Programs</CardTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    From the same organization
+            {profileLoading ? (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <Skeleton className="h-6 w-40 mb-2" />
+                  <Skeleton className="h-4 w-56" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg border">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-3 w-3/4" />
+                          </div>
+                          <Skeleton className="h-5 w-12 flex-shrink-0" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <Skeleton className="h-10 w-full mt-4" />
+                </CardContent>
+              </Card>
+            ) : siblingPrograms.length > 0 ? (
+              <Card className="shadow-sm">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold">Related Programs</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {userProfile 
+                      ? "Matched programs from the same organization"
+                      : "From the same organization"
+                    }
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <ul className="space-y-1.5">
                     {siblingPrograms.map((p, i) => (
                       <li key={`sib-${i}`}>
                         <Link
-                          className="block p-3 rounded-lg hover:bg-accent transition-colors group"
+                          className="block p-3 rounded-lg hover:bg-accent transition-colors group border border-transparent hover:border-border"
                           to={`/funding/${p.slug || slugifyFunding(p.name, p.source)}`}
                         >
-                          <p className="text-sm font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
-                            {p.name || 'Untitled program'}
-                          </p>
-                          {p.fundingAmount && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                              {p.fundingAmount}
-                            </p>
-                          )}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-2 leading-snug">
+                                {p.name || 'Untitled program'}
+                              </p>
+                              {p.fundingAmount && (
+                                <p className="text-xs text-muted-foreground mt-1.5 line-clamp-1">
+                                  {p.fundingAmount}
+                                </p>
+                              )}
+                            </div>
+                            {p.matchScore !== undefined && (
+                              <Badge variant="outline" className="flex-shrink-0 gap-1 ml-2">
+                                <Sparkles className="w-3 h-3" />
+                                {p.matchScore}%
+                              </Badge>
+                            )}
+                          </div>
                         </Link>
                       </li>
                     ))}
@@ -513,42 +677,7 @@ export default function FundingDetail() {
                   </Button>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button 
-                  className="w-full justify-start gap-2" 
-                  variant="outline"
-                  onClick={handleSaveToggle}
-                  disabled={isSaving || !program?.id}
-                >
-                  {isSaved ? (
-                    <>
-                      <BookmarkCheck className="w-4 h-4" /> Saved
-                    </>
-                  ) : (
-                    <>
-                      <Bookmark className="w-4 h-4" /> Save for Later
-                    </>
-                  )}
-                </Button>
-                <Button className="w-full justify-start gap-2" variant="outline">
-                  <Share2 className="w-4 h-4" /> Share Opportunity
-                </Button>
-                {program.source && (
-                  <a href={program.source} target="_blank" rel="noreferrer" className="block">
-                    <Button className="w-full justify-start gap-2">
-                      <ExternalLink className="w-4 h-4" /> Apply Now
-                    </Button>
-                  </a>
-                )}
-              </CardContent>
-            </Card>
+            ) : null}
           </div>
         </div>
       </div>
