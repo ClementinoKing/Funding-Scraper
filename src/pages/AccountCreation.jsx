@@ -122,6 +122,7 @@ export default function AccountCreation() {
     // Step 1: Personal & Owner Information
     ownerFullName: '',
     idNumber: '',
+    dob: '',
     phone: '',
     email: '',
     gender: '',
@@ -236,6 +237,20 @@ export default function AccountCreation() {
       } else if (!validateIDNumber(formData.idNumber)) {
         newErrors.idNumber = 'Please enter a valid 13-digit South African ID number'
       }
+      if (formData.dob) {
+        const dobDate = new Date(formData.dob)
+        const today = new Date()
+        if (dobDate > today) {
+          newErrors.dob = 'Date of birth cannot be in the future'
+        } else {
+          const age = today.getFullYear() - dobDate.getFullYear()
+          const monthDiff = today.getMonth() - dobDate.getMonth()
+          const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate()) ? age - 1 : age
+          if (actualAge < 18) {
+            newErrors.dob = 'You must be at least 18 years old to register a business'
+          }
+        }
+      }
       if (!formData.phone.trim()) newErrors.phone = 'Phone number is required'
       if (!formData.gender) newErrors.gender = 'Gender is required'
       if (!formData.race) newErrors.race = 'Race/Ethnicity is required'
@@ -320,6 +335,7 @@ export default function AccountCreation() {
         password_hash: 'password_stored_in_auth_users_table', // Passwords stored in auth.users
         owner_full_name: formData.ownerFullName,
         id_number: formData.idNumber.replace(/\D/g, ''), // Remove non-digits
+        dob: formData.dob || null,
         gender: normalizeValue(formData.gender),
         race: normalizeValue(formData.race, true),
         disability_status: normalizeValue(formData.disabilityStatus),
@@ -596,6 +612,21 @@ export default function AccountCreation() {
                       <FieldDescription>13-digit South African ID number</FieldDescription>
                       {errors.idNumber && (
                         <p className="text-sm text-red-500 mt-1">{errors.idNumber}</p>
+                      )}
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="dob">Date of Birth</FieldLabel>
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={formData.dob}
+                        onChange={(e) => updateFormData('dob', e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className={errors.dob ? 'border-red-500' : ''}
+                      />
+                      <FieldDescription>Optional - Used for age verification</FieldDescription>
+                      {errors.dob && (
+                        <p className="text-sm text-red-500 mt-1">{errors.dob}</p>
                       )}
                     </Field>
                     <Field>
@@ -1107,6 +1138,9 @@ export default function AccountCreation() {
                       <div className="space-y-1 text-sm">
                         <p><span className="text-muted-foreground">Name:</span> {formData.ownerFullName}</p>
                         <p><span className="text-muted-foreground">ID Number:</span> {formData.idNumber}</p>
+                        {formData.dob && (
+                          <p><span className="text-muted-foreground">Date of Birth:</span> {new Date(formData.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        )}
                         <p><span className="text-muted-foreground">Phone:</span> {formData.phone}</p>
                         <p><span className="text-muted-foreground">Email:</span> {formData.email || registrationData.email}</p>
                         <p><span className="text-muted-foreground">Gender:</span> {formData.gender}</p>

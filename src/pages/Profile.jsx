@@ -227,6 +227,16 @@ export default function Profile() {
                   placeholder="ID Number"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="dob">Date of Birth</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={profile.dob ? profile.dob.split('T')[0] : ''}
+                  onChange={(e) => setProfile({ ...profile, dob: e.target.value || null })}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+              </div>
             </CardContent>
           </Card>
 
