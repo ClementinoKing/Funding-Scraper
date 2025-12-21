@@ -15,7 +15,6 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 async function transform () {
     let { data: programs_staging, error } = await supabase
         .from("programs_staging")
-        // .from("tmp_programs")
         .select("*");
 
     if (error) {
@@ -25,6 +24,7 @@ async function transform () {
 
     for(const program of programs_staging) {
         let htmlContent = "No website content provided.";
+        let isFetched = false;
 
         try {
             htmlContent = await fetchPageText(program.source);
@@ -32,23 +32,42 @@ async function transform () {
                 console.log("Escalating to headless browser:", program.source);
                 htmlContent = await fetchPageTextWithBrowser(program.source);
             }
+
+            if (htmlContent && htmlContent.length > 100) {
+                isFetched = true;
+            }
+
         } catch (error) {
             console.error(`Error fetching page text for URL ${program.source}:`, error);
         }
 
         const response = await fetchAiResponse(program, openai_key, ai_provider, htmlContent);
         const ai_response = JSON.parse(response);
-        ai_response['staging_id'] = program.id;
-        ai_response['page_fetched'] = htmlContent !== "No website content provided." || htmlContent.length > 100;
-
         console.log("Response:",ai_response)
 
-        const { data } = await supabase
-            .from("programs")
-            .upsert([ai_response])
-            .select();
-        console.log(data)
-        console.log("\n\n\n")
+        if(Array.isArray(ai_response)) {
+            for(const single_response of ai_response) {
+                single_response['staging_id'] = program.id;
+                single_response['page_fetched'] = isFetched;
+
+                const { data } = await supabase
+                    .from("programs")
+                    .upsert([single_response])
+                    .select();
+                console.log(data)
+                console.log("\n\n\n")
+            }
+        } else {
+            ai_response['staging_id'] = program.id;
+            ai_response['page_fetched'] = isFetched;
+
+            const { data } = await supabase
+                .from("programs")
+                .upsert([ai_response])
+                .select();
+            console.log(data)
+            console.log("\n\n\n")
+        }
     }
 }
 

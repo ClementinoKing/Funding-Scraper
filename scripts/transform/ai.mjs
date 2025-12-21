@@ -28,7 +28,8 @@ Use only the data given; do not infer or hallucinate any information.
 If certain fields are missing, indicate them as "Not specified" or null as appropriate.
 
 KEYPOINTS:
-
+- If the program seems to have multiple funding opportunities, let's say there are multiple grants under one umbrella program or a grant and a lone in one program, return an array of separate JSON objects following the schema provided, one for each distinct funding opportunity.
+- Focus on clarity and human readability
 - Recreate the title to be clear and human friendly.
 - Regenerate the summary so it is clear, concise, and suitable for human readers. Make sure the summary captures the essence of the funding opportunity and it should never be empty or "Not specified".
 
