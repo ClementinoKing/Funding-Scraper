@@ -9,7 +9,7 @@ import { Header } from '@/components/layout/Header'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { useNavigate } from 'react-router-dom'
-import { signOut, getCurrentUser } from '@/lib/auth'
+import { signOut } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { User, Building2, TrendingUp, DollarSign, Loader2 } from 'lucide-react'
 

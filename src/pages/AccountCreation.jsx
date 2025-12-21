@@ -18,6 +18,7 @@ import {
 import { getToken, setToken, setUser, getCurrentSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { CheckCircle2, ArrowRight, ArrowLeft, User, Building2, TrendingUp, DollarSign, FileCheck, Shield } from 'lucide-react'
+import { getFundingCategory } from '@/lib/ai';
 
 const STEPS = [
   { id: 1, title: 'Personal & Owner Info', description: 'Tell us about yourself' },
@@ -159,6 +160,31 @@ export default function AccountCreation() {
   const [error, setError] = useState('')
   const [registrationData, setRegistrationData] = useState(null)
   const navigate = useNavigate()
+
+  const [fundingCategory, setFundingCategory] = useState(
+    { primary_category: '', confidence: 0, explanation: '' }
+  );
+
+  useEffect(() => {
+    async function classifyFundingPurpose() {
+      if (currentStep >= 4 && formData.purposeOfFunding.trim().length >= 20) {
+        try {
+          const response = await getFundingCategory({ funding_purpose: formData.purposeOfFunding })
+          const categoryData = JSON.parse(response)
+          setFundingCategory(categoryData)
+        } catch (err) {
+          console.error('Error classifying funding purpose:', err)
+        }
+      }    
+    }
+
+    const timer = setTimeout(() => {
+      classifyFundingPurpose()
+    }, 1500);
+
+    return () => clearTimeout(timer);
+
+  },[currentStep, formData.purposeOfFunding])
 
   useEffect(() => {
     async function checkRegistration() {
@@ -360,6 +386,9 @@ export default function AccountCreation() {
         sectors: formData.sectors.length > 0 ? formData.sectors : [],
         funding_types: formData.fundingTypes.length > 0 ? formData.fundingTypes : [],
         profile_completed: true,
+        funding_category: fundingCategory.primary_category || null,
+        funding_category_confidence: fundingCategory.confidence || null,
+        funding_category_explanation: fundingCategory.explanation || null,
       }
 
       // Check if profile already exists
@@ -395,6 +424,8 @@ export default function AccountCreation() {
         profile = insertedProfile
         profileError = insertError
       }
+
+      console.log(profile)
 
       if (profileError) {
         console.error('Error saving user profile:', profileError)
