@@ -29,9 +29,26 @@ If certain fields are missing, indicate them as "Not specified" or null as appro
 
 KEYPOINTS:
 - If the program seems to have multiple funding opportunities, let's say there are multiple grants under one umbrella program or a grant and a lone in one program, return an array of separate JSON objects following the schema provided, one for each distinct funding opportunity.
+- Once you split the funding opportunities, determine the program type (program_type) as well, if its a grant, loan etc.
+- You should also be able to determine the funding categories based on the list provided below. Use the column funding_category.
 - Focus on clarity and human readability
 - Recreate the title to be clear and human friendly.
 - Regenerate the summary so it is clear, concise, and suitable for human readers. Make sure the summary captures the essence of the funding opportunity and it should never be empty or "Not specified".
+
+**Available Funding Categories:**
+1.  Seed / Startup Capital
+2.  Product Development
+3.  Inventory & Working Capital
+4.  Marketing & Customer Acquisition
+5.  Equipment & Machinery
+6.  Commercial Real Estate
+7.  Business Expansion / Growth Capital
+8.  Debt Refinancing / Restructuring
+9.  Acquisitions
+10. Bridge / Emergency Funding
+11. R&D / Innovation
+12. Franchise Financing
+13. Green / Sustainable Projects
 
 ELIGIBILITY (CRITICAL):
 - Capturing accurate eligibility criteria is a must no matter what, no blanks needed - write something based on the summary or the website content.
@@ -107,7 +124,9 @@ Required JSON schema:
     "confidence": number,
     "age": string,
     "gender": string,
-    "ethnicity": string
+    "ethnicity": string,
+    "program_type": string,
+    "funding_category": string
 }
 `;
   console.log("System Propmt: ",systemPrompt);
