@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { GoogleMap, useLoadScript, Marker, Autocomplete } from '@react-google-maps/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +19,18 @@ import {
 import { getToken, setToken, setUser, getCurrentSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { CheckCircle2, ArrowRight, ArrowLeft, User, Building2, TrendingUp, DollarSign, FileCheck, Shield } from 'lucide-react'
+import { getFundingCategory } from '@/lib/ai';
+
+const libraries = ['places']
+const mapContainerStyle = {
+  width: '100%',
+  height: '300px',
+}
+const defaultCenter = {
+  lat: -25.7479,
+  lng: 28.2293,
+}
+const defaultZoom = 10
 
 const STEPS = [
   { id: 1, title: 'Personal & Owner Info', description: 'Tell us about yourself' },
@@ -45,22 +58,6 @@ const INDUSTRIES = [
   'Food & Beverage',
   'Textiles & Clothing',
   'Other',
-]
-
-const SECTORS = [
-  'Agriculture',
-  'Manufacturing',
-  'Technology',
-  'Tourism',
-  'Mining',
-  'Energy',
-  'Healthcare',
-  'Education',
-  'Retail',
-  'Services',
-  'Construction',
-  'Transport',
-  'Finance',
 ]
 
 const FUNDING_TYPES = [
@@ -122,6 +119,7 @@ export default function AccountCreation() {
     // Step 1: Personal & Owner Information
     ownerFullName: '',
     idNumber: '',
+    dob: '',
     phone: '',
     email: '',
     gender: '',
@@ -136,6 +134,7 @@ export default function AccountCreation() {
     businessRegistrationDate: '',
     yearsInBusiness: '',
     physicalAddress: '',
+    postalCode: '',
     website: '',
     taxNumber: '',
     vatNumber: '',
@@ -151,13 +150,211 @@ export default function AccountCreation() {
     purposeOfFunding: '',
     previousFundingHistory: false,
     previousFundingDetails: '',
-    sectors: [],
     fundingTypes: [],
   })
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
   const [registrationData, setRegistrationData] = useState(null)
   const navigate = useNavigate()
+
+  const [fundingCategory, setFundingCategory] = useState(
+    { primary_category: '', confidence: 0, explanation: '' }
+  );
+  const [fundingCategoryLoading, setFundingCategoryLoading] = useState(false);
+  const [mapCenter, setMapCenter] = useState(defaultCenter)
+  const [mapZoom, setMapZoom] = useState(defaultZoom)
+  const [isNavigating, setIsNavigating] = useState(false)
+  const [isGeocoding, setIsGeocoding] = useState(false)
+  const geocoderRef = useRef(null)
+  const autocompleteRef = useRef(null)
+  const [addressError, setAddressError] = useState('')
+
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+  })
+
+  const geocodeAddress = useCallback(async (address) => {
+    if (!address || !isLoaded || !window.google) return
+
+    setIsGeocoding(true)
+    setAddressError('')
+
+    if (!geocoderRef.current) {
+      geocoderRef.current = new window.google.maps.Geocoder()
+    }
+
+    try {
+      // Enhanced geocoding with region biasing for South Africa
+      const results = await new Promise((resolve, reject) => {
+        geocoderRef.current.geocode(
+          { 
+            address: address,
+            region: 'ZA', // Bias to South Africa
+            componentRestrictions: { country: 'ZA' } // Restrict to South Africa
+          }, 
+          (results, status) => {
+            if (status === 'OK') {
+              resolve(results)
+            } else if (status === 'ZERO_RESULTS') {
+              // Try without country restriction if no results
+              geocoderRef.current.geocode(
+                { 
+                  address: address,
+                  region: 'ZA'
+                }, 
+                (results, status) => {
+                  if (status === 'OK') {
+                    resolve(results)
+                  } else {
+                    reject(new Error(`Geocoding failed: ${status}`))
+                  }
+                }
+              )
+            } else {
+              reject(new Error(`Geocoding failed: ${status}`))
+            }
+          }
+        )
+      })
+
+      if (results && results[0]) {
+        const location = results[0].geometry.location
+        const viewport = results[0].geometry.viewport
+        
+        setMapCenter({
+          lat: location.lat(),
+          lng: location.lng(),
+        })
+        
+        // Adjust zoom based on location type
+        if (viewport) {
+          const bounds = new window.google.maps.LatLngBounds(viewport)
+          const ne = bounds.getNorthEast()
+          const sw = bounds.getSouthWest()
+          const latDiff = ne.lat() - sw.lat()
+          const lngDiff = ne.lng() - sw.lng()
+          
+          // Calculate appropriate zoom level
+          if (latDiff < 0.01 || lngDiff < 0.01) {
+            setMapZoom(17) // Very specific location (building level)
+          } else if (latDiff < 0.05 || lngDiff < 0.05) {
+            setMapZoom(15) // Neighborhood level
+          } else {
+            setMapZoom(13) // City level
+          }
+        } else {
+          setMapZoom(15) // Default zoom
+        }
+        
+        setAddressError('')
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error)
+      setAddressError('Could not find location. Please check the address or try a more specific location.')
+    } finally {
+      setIsGeocoding(false)
+    }
+  }, [isLoaded])
+
+  // Handle place selection from autocomplete
+  const onPlaceChanged = useCallback(() => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace()
+      
+      if (place.geometry) {
+        const location = place.geometry.location
+        const viewport = place.geometry.viewport
+        
+        // Update form data with formatted address
+        const formattedAddress = place.formatted_address || place.name
+        updateFormData('physicalAddress', formattedAddress)
+        
+        setMapCenter({
+          lat: location.lat(),
+          lng: location.lng(),
+        })
+        
+        // Adjust zoom based on location type
+        if (viewport) {
+          const bounds = new window.google.maps.LatLngBounds(viewport)
+          const ne = bounds.getNorthEast()
+          const sw = bounds.getSouthWest()
+          const latDiff = ne.lat() - sw.lat()
+          const lngDiff = ne.lng() - sw.lng()
+          
+          if (latDiff < 0.01 || lngDiff < 0.01) {
+            setMapZoom(17)
+          } else if (latDiff < 0.05 || lngDiff < 0.05) {
+            setMapZoom(15)
+          } else {
+            setMapZoom(13)
+          }
+        } else {
+          setMapZoom(15)
+        }
+        
+        setAddressError('')
+      } else {
+        // If no geometry, try geocoding the formatted address
+        if (place.formatted_address) {
+          geocodeAddress(place.formatted_address)
+        }
+      }
+    }
+  }, [geocodeAddress])
+
+  // Geocode address when manually typed (with debounce)
+  useEffect(() => {
+    // Only geocode if autocomplete is not being used (user typing manually)
+    if (formData.physicalAddress && formData.physicalAddress.trim().length > 5 && isLoaded) {
+      const timeoutId = setTimeout(() => {
+        geocodeAddress(formData.physicalAddress)
+      }, 1500) // Increased debounce for better UX
+      return () => clearTimeout(timeoutId)
+    }
+  }, [formData.physicalAddress, isLoaded, geocodeAddress])
+
+  useEffect(() => {
+    async function classifyFundingPurpose() {
+      if (currentStep >= 4 && formData.purposeOfFunding.trim().length >= 20) {
+        setFundingCategoryLoading(true)
+        try {
+          const response = await getFundingCategory({ funding_purpose: formData.purposeOfFunding })
+          const categoryData = JSON.parse(response)
+          setFundingCategory(categoryData)
+        } catch (err) {
+          console.error('Error classifying funding purpose:', err)
+        } finally {
+          setFundingCategoryLoading(false)
+        }
+      } else {
+        // Reset category if purpose is too short
+        setFundingCategory({ primary_category: '', confidence: 0, explanation: '' })
+        setFundingCategoryLoading(false)
+      }
+    }
+
+    const timer = setTimeout(() => {
+      classifyFundingPurpose()
+    }, 1500);
+
+    return () => clearTimeout(timer);
+
+  },[currentStep, formData.purposeOfFunding])
+
+  // Auto-calculate years in business when registration date is set (only if not already calculated)
+  useEffect(() => {
+    if (formData.businessRegistrationDate) {
+      const calculatedYears = calculateYearsInBusiness(formData.businessRegistrationDate)
+      const currentYears = formData.yearsInBusiness ? parseInt(formData.yearsInBusiness) : null
+      
+      // Only update if the calculated value differs from current value
+      if (calculatedYears !== null && calculatedYears !== currentYears) {
+        setFormData(prev => ({ ...prev, yearsInBusiness: calculatedYears.toString() }))
+      }
+    }
+  }, [formData.businessRegistrationDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function checkRegistration() {
@@ -171,6 +368,22 @@ export default function AccountCreation() {
       }
 
       if (session && !tempReg) {
+        // Check if user already has a completed profile
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('profile_completed')
+            .eq('user_id', user.id)
+            .single()
+          
+          // If profile exists and is completed, redirect to dashboard
+          if (profile && profile.profile_completed) {
+            navigate('/dashboard', { replace: true })
+            return
+          }
+        }
+        
         const tempRegistration = {
           id: session.user.id,
           loginMethod: session.user.email ? 'email' : 'phone',
@@ -208,8 +421,35 @@ export default function AccountCreation() {
     checkRegistration()
   }, [navigate])
 
+  function calculateYearsInBusiness(registrationDate) {
+    if (!registrationDate) return null
+    
+    const regDate = new Date(registrationDate)
+    const today = new Date()
+    
+    let years = today.getFullYear() - regDate.getFullYear()
+    const monthDiff = today.getMonth() - regDate.getMonth()
+    
+    // Adjust if birthday hasn't occurred this year
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < regDate.getDate())) {
+      years--
+    }
+    
+    return Math.max(0, years) // Ensure non-negative
+  }
+
   function updateFormData(field, value) {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value }
+      
+      // Auto-calculate years in business when registration date changes
+      if (field === 'businessRegistrationDate') {
+        const years = calculateYearsInBusiness(value)
+        updated.yearsInBusiness = years !== null ? years.toString() : ''
+      }
+      
+      return updated
+    })
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev }
@@ -236,6 +476,20 @@ export default function AccountCreation() {
       } else if (!validateIDNumber(formData.idNumber)) {
         newErrors.idNumber = 'Please enter a valid 13-digit South African ID number'
       }
+      if (formData.dob) {
+        const dobDate = new Date(formData.dob)
+        const today = new Date()
+        if (dobDate > today) {
+          newErrors.dob = 'Date of birth cannot be in the future'
+        } else {
+          const age = today.getFullYear() - dobDate.getFullYear()
+          const monthDiff = today.getMonth() - dobDate.getMonth()
+          const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate()) ? age - 1 : age
+          if (actualAge < 18) {
+            newErrors.dob = 'You must be at least 18 years old to register a business'
+          }
+        }
+      }
       if (!formData.phone.trim()) newErrors.phone = 'Phone number is required'
       if (!formData.gender) newErrors.gender = 'Gender is required'
       if (!formData.race) newErrors.race = 'Race/Ethnicity is required'
@@ -246,6 +500,11 @@ export default function AccountCreation() {
       if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required'
       if (!formData.businessType) newErrors.businessType = 'Business type is required'
       if (!formData.industry) newErrors.industry = 'Industry is required'
+      if (!formData.companyRegistrationNumber.trim()) newErrors.companyRegistrationNumber = 'Company registration number is required'
+      if (!formData.businessRegistrationDate) newErrors.businessRegistrationDate = 'Business registration date is required'
+      if (formData.postalCode && !/^\d{4}$/.test(formData.postalCode.trim())) {
+        newErrors.postalCode = 'Postal code must be 4 digits'
+      }
     }
 
     if (step === 3) {
@@ -261,9 +520,6 @@ export default function AccountCreation() {
       } else if (formData.purposeOfFunding.trim().length < 20) {
         newErrors.purposeOfFunding = 'Please provide more details (at least 20 characters)'
       }
-      if (formData.sectors.length === 0) {
-        newErrors.sectors = 'Select at least one sector'
-      }
       if (formData.fundingTypes.length === 0) {
         newErrors.fundingTypes = 'Select at least one funding type'
       }
@@ -276,9 +532,22 @@ export default function AccountCreation() {
     return Object.keys(newErrors).length === 0
   }
 
-  function handleNext() {
+  function handleNext(e) {
+    // Prevent any form submission
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length))
+      setIsNavigating(true)
+      const nextStep = Math.min(currentStep + 1, STEPS.length)
+      setCurrentStep(nextStep)
+      
+      // Reset navigation flag after a short delay
+      setTimeout(() => {
+        setIsNavigating(false)
+      }, 100)
     }
   }
 
@@ -288,6 +557,20 @@ export default function AccountCreation() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    e.stopPropagation()
+    
+    // CRITICAL: Only allow submission on the final step (Review/Step 5)
+    // This should never be called on earlier steps due to form onSubmit guard
+    if (currentStep !== STEPS.length) {
+      console.warn('handleSubmit called on non-final step. Preventing account creation.')
+      return
+    }
+    
+    // Double-check we're on the review step
+    if (currentStep !== 5) {
+      console.error('Account creation attempted on wrong step:', currentStep)
+      return
+    }
     
     if (!validateStep(currentStep)) return
 
@@ -320,6 +603,7 @@ export default function AccountCreation() {
         password_hash: 'password_stored_in_auth_users_table', // Passwords stored in auth.users
         owner_full_name: formData.ownerFullName,
         id_number: formData.idNumber.replace(/\D/g, ''), // Remove non-digits
+        dob: formData.dob || null,
         gender: normalizeValue(formData.gender),
         race: normalizeValue(formData.race, true),
         disability_status: normalizeValue(formData.disabilityStatus),
@@ -328,8 +612,11 @@ export default function AccountCreation() {
         business_type: formData.businessType,
         industry: normalizeValue(formData.industry),
         business_registration_date: formData.businessRegistrationDate || null,
-        years_in_business: formData.yearsInBusiness ? parseInt(formData.yearsInBusiness) : null,
+        years_in_business: formData.businessRegistrationDate 
+          ? (formData.yearsInBusiness ? parseInt(formData.yearsInBusiness) : calculateYearsInBusiness(formData.businessRegistrationDate))
+          : null,
         physical_address: formData.physicalAddress || null,
+        postal_code: formData.postalCode || null,
         website: formData.website || null,
         tax_number: formData.taxNumber || null,
         vat_number: formData.vatNumber || null,
@@ -341,21 +628,54 @@ export default function AccountCreation() {
         purpose_of_funding: formData.purposeOfFunding,
         previous_funding_history: formData.previousFundingHistory,
         previous_funding_details: formData.previousFundingDetails || null,
-        sectors: formData.sectors.length > 0 ? formData.sectors : [],
         funding_types: formData.fundingTypes.length > 0 ? formData.fundingTypes : [],
         profile_completed: true,
+        funding_category: fundingCategory.primary_category || null,
+        funding_category_confidence: fundingCategory.confidence || null,
+        funding_category_explanation: fundingCategory.explanation || null,
       }
 
-      // Check if profile already exists
-      const { data: existingProfile } = await supabase
+      // Check if profile already exists for this user
+      const { data: existingProfile, error: existingProfileError } = await supabase
         .from('user_profiles')
-        .select('id')
+        .select('id, user_id, id_number')
         .eq('user_id', currentUser.id)
-        .single()
+        .maybeSingle()
+
+      // Check if ID number is already taken by another user
+      const normalizedIdNumber = formData.idNumber.replace(/\D/g, '')
+      const { data: idNumberProfile, error: idNumberError } = await supabase
+        .from('user_profiles')
+        .select('id, user_id')
+        .eq('id_number', normalizedIdNumber)
+        .maybeSingle()
+
+      // Handle query errors
+      if (existingProfileError) {
+        console.error('Error checking existing profile:', existingProfileError)
+        setError('Error checking profile. Please try again.')
+        setLoading(false)
+        return
+      }
+
+      if (idNumberError && idNumberError.code !== 'PGRST116') { // PGRST116 is "not found" which is fine
+        console.error('Error checking ID number:', idNumberError)
+        setError('Error checking ID number. Please try again.')
+        setLoading(false)
+        return
+      }
 
       let profile
       let profileError
 
+      // If ID number exists and belongs to a different user, show error
+      if (idNumberProfile && idNumberProfile.user_id !== currentUser.id) {
+        setError('This ID number is already registered to another account. Please use a different ID number or contact support.')
+        setLoading(false)
+        return
+      }
+
+      // If profile exists for this user, update it
       if (existingProfile) {
         const { data: updatedProfile, error: updateError } = await supabase
           .from('user_profiles')
@@ -370,6 +690,7 @@ export default function AccountCreation() {
         profile = updatedProfile
         profileError = updateError
       } else {
+        // Create new profile
         const { data: insertedProfile, error: insertError } = await supabase
           .from('user_profiles')
           .insert(userProfileData)
@@ -379,6 +700,8 @@ export default function AccountCreation() {
         profile = insertedProfile
         profileError = insertError
       }
+
+      console.log(profile)
 
       if (profileError) {
         console.error('Error saving user profile:', profileError)
@@ -410,22 +733,6 @@ export default function AccountCreation() {
       console.error('Error completing profile:', error)
       setError('An unexpected error occurred. Please try again.')
       setLoading(false)
-    }
-  }
-
-  function toggleSector(sector) {
-    setFormData(prev => ({
-      ...prev,
-      sectors: prev.sectors.includes(sector)
-        ? prev.sectors.filter(s => s !== sector)
-        : [...prev.sectors, sector],
-    }))
-    if (errors.sectors) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors.sectors
-        return newErrors
-      })
     }
   }
 
@@ -549,7 +856,47 @@ export default function AccountCreation() {
                 {error}
               </div>
             )}
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              
+              // Prevent submission if we're currently navigating between steps
+              if (isNavigating) {
+                return false
+              }
+              
+              // Only allow form submission on the final step (Review/Step 5)
+              // AND only when the submit button is explicitly clicked
+              const isFinalStep = currentStep === STEPS.length
+              
+              if (!isFinalStep) {
+                // On all steps before Review, completely prevent form submission
+                return false
+              }
+              
+              // On final step, check if this is from the submit button
+              const submitter = e.nativeEvent?.submitter
+              const isSubmitButton = submitter?.type === 'submit' || 
+                                     (submitter?.tagName === 'BUTTON' && submitter?.getAttribute('type') === 'submit')
+              
+              // Only proceed if we're on final step AND submit button was clicked
+              if (isFinalStep && isSubmitButton) {
+                handleSubmit(e)
+              } else {
+                // Even on final step, if not from submit button, prevent
+                return false
+              }
+              
+              return false
+            }}
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting form on steps 1-4
+              if (e.key === 'Enter' && currentStep < STEPS.length) {
+                e.preventDefault()
+                e.stopPropagation()
+                // User must click Next button explicitly
+              }
+            }}>
               {/* Step 1: Personal & Owner Information */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-in fade-in-50 duration-300">
@@ -596,6 +943,21 @@ export default function AccountCreation() {
                       <FieldDescription>13-digit South African ID number</FieldDescription>
                       {errors.idNumber && (
                         <p className="text-sm text-red-500 mt-1">{errors.idNumber}</p>
+                      )}
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="dob">Date of Birth</FieldLabel>
+                      <Input
+                        id="dob"
+                        type="date"
+                        value={formData.dob}
+                        onChange={(e) => updateFormData('dob', e.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className={errors.dob ? 'border-red-500' : ''}
+                      />
+                      <FieldDescription>Optional - Used for age verification</FieldDescription>
+                      {errors.dob && (
+                        <p className="text-sm text-red-500 mt-1">{errors.dob}</p>
                       )}
                     </Field>
                     <Field>
@@ -739,15 +1101,19 @@ export default function AccountCreation() {
                     </Field>
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
-                        <FieldLabel htmlFor="companyRegistrationNumber">Company Registration Number</FieldLabel>
+                        <FieldLabel htmlFor="companyRegistrationNumber">Company Registration Number *</FieldLabel>
                         <Input
                           id="companyRegistrationNumber"
                           value={formData.companyRegistrationNumber}
                           onChange={(e) => updateFormData('companyRegistrationNumber', e.target.value)}
                           placeholder="2023/123456/07"
+                          required
                           className={errors.companyRegistrationNumber ? 'border-red-500' : ''}
                         />
-                        <FieldDescription>CIPC registration (optional)</FieldDescription>
+                        <FieldDescription>CIPC registration number</FieldDescription>
+                        {errors.companyRegistrationNumber && (
+                          <p className="text-sm text-red-500 mt-1">{errors.companyRegistrationNumber}</p>
+                        )}
                       </Field>
                       <Field>
                         <FieldLabel htmlFor="businessType">Business Type *</FieldLabel>
@@ -796,37 +1162,129 @@ export default function AccountCreation() {
                     </Field>
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
-                        <FieldLabel htmlFor="businessRegistrationDate">Business Registration Date</FieldLabel>
+                        <FieldLabel htmlFor="businessRegistrationDate">Business Registration Date *</FieldLabel>
                         <Input
                           id="businessRegistrationDate"
                           type="date"
                           value={formData.businessRegistrationDate}
                           onChange={(e) => updateFormData('businessRegistrationDate', e.target.value)}
+                          max={new Date().toISOString().split('T')[0]}
+                          required
+                          className={errors.businessRegistrationDate ? 'border-red-500' : ''}
                         />
+                        {errors.businessRegistrationDate && (
+                          <p className="text-sm text-red-500 mt-1">{errors.businessRegistrationDate}</p>
+                        )}
                       </Field>
                       <Field>
                         <FieldLabel htmlFor="yearsInBusiness">Years in Business</FieldLabel>
                         <Input
                           id="yearsInBusiness"
-                          type="number"
-                          min="0"
-                          value={formData.yearsInBusiness}
-                          onChange={(e) => updateFormData('yearsInBusiness', e.target.value)}
-                          placeholder="5"
+                          type="text"
+                          value={formData.businessRegistrationDate 
+                            ? (formData.yearsInBusiness || calculateYearsInBusiness(formData.businessRegistrationDate) || '0')
+                            : ''}
+                          disabled
+                          placeholder="Auto-calculated"
+                          className="bg-muted cursor-not-allowed"
                         />
+                        <FieldDescription>Automatically calculated from registration date</FieldDescription>
                       </Field>
                     </div>
                     <Field>
                       <FieldLabel htmlFor="physicalAddress">Physical Address</FieldLabel>
-                      <textarea
-                        id="physicalAddress"
-                        value={formData.physicalAddress}
-                        onChange={(e) => updateFormData('physicalAddress', e.target.value)}
-                        placeholder="123 Main Street, City, Province, Postal Code"
-                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        rows={3}
-                      />
+                      {isLoaded ? (
+                        <Autocomplete
+                          onLoad={(autocomplete) => {
+                            autocompleteRef.current = autocomplete
+                            // Configure autocomplete for South Africa
+                            autocomplete.setComponentRestrictions({ country: 'za' })
+                            autocomplete.setFields(['geometry', 'formatted_address', 'address_components', 'name'])
+                          }}
+                          onPlaceChanged={onPlaceChanged}
+                        >
+                          <Input
+                            id="physicalAddress"
+                            type="text"
+                            value={formData.physicalAddress}
+                            onChange={(e) => {
+                              updateFormData('physicalAddress', e.target.value)
+                              setAddressError('')
+                            }}
+                            placeholder="Start typing your address... (e.g., 123 Main Street, Johannesburg, Gauteng)"
+                            className={addressError ? 'border-amber-500' : ''}
+                          />
+                        </Autocomplete>
+                      ) : (
+                        <Input
+                          id="physicalAddress"
+                          type="text"
+                          value={formData.physicalAddress}
+                          onChange={(e) => {
+                            updateFormData('physicalAddress', e.target.value)
+                            setAddressError('')
+                          }}
+                          placeholder="123 Main Street, City, Province"
+                          className={addressError ? 'border-amber-500' : ''}
+                        />
+                      )}
+                      <FieldDescription>
+                        {isGeocoding 
+                          ? 'Locating address on map...' 
+                          : 'Start typing to see address suggestions. Results are optimized for South African addresses.'}
+                      </FieldDescription>
+                      {addressError && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">{addressError}</p>
+                      )}
                     </Field>
+                    <Field>
+                      <FieldLabel htmlFor="postalCode">Postal Code</FieldLabel>
+                      <Input
+                        id="postalCode"
+                        value={formData.postalCode}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 4)
+                          updateFormData('postalCode', value)
+                        }}
+                        placeholder="0000"
+                        maxLength={4}
+                        className={errors.postalCode ? 'border-red-500' : ''}
+                      />
+                      <FieldDescription>4-digit South African postal code (optional)</FieldDescription>
+                      {errors.postalCode && (
+                        <p className="text-sm text-red-500 mt-1">{errors.postalCode}</p>
+                      )}
+                    </Field>
+                    {formData.physicalAddress && formData.physicalAddress.trim().length > 5 && (
+                      <Field>
+                        <FieldLabel>Location Map</FieldLabel>
+                        {loadError ? (
+                          <div className="text-sm text-muted-foreground p-4 border rounded-md">
+                            Error loading map. Please check your Google Maps API key.
+                          </div>
+                        ) : !isLoaded ? (
+                          <div className="text-sm text-muted-foreground p-4 border rounded-md">
+                            Loading map...
+                          </div>
+                        ) : (
+                          <div className="border rounded-md overflow-hidden">
+                            <GoogleMap
+                              mapContainerStyle={mapContainerStyle}
+                              center={mapCenter}
+                              zoom={mapZoom}
+                              options={{
+                                streetViewControl: false,
+                                mapTypeControl: false,
+                                fullscreenControl: true,
+                              }}
+                            >
+                              <Marker position={mapCenter} />
+                            </GoogleMap>
+                          </div>
+                        )}
+                        <FieldDescription>Map showing your business location</FieldDescription>
+                      </Field>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
                         <FieldLabel htmlFor="website">Website</FieldLabel>
@@ -1014,27 +1472,6 @@ export default function AccountCreation() {
                       )}
                     </Field>
                     <Field>
-                      <FieldLabel>Sectors of Interest *</FieldLabel>
-                      <FieldDescription>Select all sectors that apply to your business</FieldDescription>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                        {SECTORS.map((sector) => (
-                          <div key={sector} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`sector-${sector}`}
-                              checked={formData.sectors.includes(sector)}
-                              onCheckedChange={() => toggleSector(sector)}
-                            />
-                            <Label htmlFor={`sector-${sector}`} className="text-sm font-normal cursor-pointer">
-                              {sector}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                      {errors.sectors && (
-                        <p className="text-sm text-red-500 mt-2">{errors.sectors}</p>
-                      )}
-                    </Field>
-                    <Field>
                       <FieldLabel>Funding Types *</FieldLabel>
                       <FieldDescription>What types of funding are you interested in?</FieldDescription>
                       <div className="grid grid-cols-2 gap-3 mt-2">
@@ -1107,6 +1544,9 @@ export default function AccountCreation() {
                       <div className="space-y-1 text-sm">
                         <p><span className="text-muted-foreground">Name:</span> {formData.ownerFullName}</p>
                         <p><span className="text-muted-foreground">ID Number:</span> {formData.idNumber}</p>
+                        {formData.dob && (
+                          <p><span className="text-muted-foreground">Date of Birth:</span> {new Date(formData.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        )}
                         <p><span className="text-muted-foreground">Phone:</span> {formData.phone}</p>
                         <p><span className="text-muted-foreground">Email:</span> {formData.email || registrationData.email}</p>
                         <p><span className="text-muted-foreground">Gender:</span> {formData.gender}</p>
@@ -1140,9 +1580,32 @@ export default function AccountCreation() {
                       <div className="space-y-1 text-sm">
                         <p><span className="text-muted-foreground">Amount Needed:</span> {REVENUE_RANGES.find(r => r.value === formData.fundingAmountNeeded)?.label}</p>
                         <p><span className="text-muted-foreground">Timeline:</span> {TIMELINE_OPTIONS.find(t => t.value === formData.timeline)?.label}</p>
-                        <p><span className="text-muted-foreground">Sectors:</span> {formData.sectors.join(', ') || 'None'}</p>
                         <p><span className="text-muted-foreground">Funding Types:</span> {formData.fundingTypes.join(', ') || 'None'}</p>
                         <p><span className="text-muted-foreground">Purpose:</span> {formData.purposeOfFunding}</p>
+                        {fundingCategoryLoading ? (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-muted-foreground italic">
+                              <span className="text-muted-foreground">Funding Category:</span> Processing...
+                            </p>
+                          </div>
+                        ) : fundingCategory.primary_category ? (
+                          <div className="mt-3 pt-3 border-t bg-primary/5 rounded-md p-3">
+                            <p className="font-semibold mb-2 text-primary">Funding Category (AI-Determined)</p>
+                            <p className="mb-1"><span className="text-muted-foreground">Category:</span> <span className="font-medium">{fundingCategory.primary_category}</span></p>
+                            {fundingCategory.confidence > 0 && (
+                              <p className="mb-1"><span className="text-muted-foreground">Confidence:</span> <span className="font-medium">{Math.round(fundingCategory.confidence * 100)}%</span></p>
+                            )}
+                            {fundingCategory.explanation && (
+                              <p className="mt-2 text-sm"><span className="text-muted-foreground">Explanation:</span> {fundingCategory.explanation}</p>
+                            )}
+                          </div>
+                        ) : formData.purposeOfFunding.trim().length >= 20 ? (
+                          <div className="mt-3 pt-3 border-t">
+                            <p className="text-muted-foreground italic text-sm">
+                              Funding category will be determined automatically when you submit.
+                            </p>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -1168,7 +1631,11 @@ export default function AccountCreation() {
                   {currentStep < STEPS.length ? (
                     <Button
                       type="button"
-                      onClick={handleNext}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleNext(e)
+                      }}
                       disabled={loading}
                     >
                       Next

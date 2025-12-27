@@ -80,7 +80,7 @@ export async function fetchPrograms(options = {}) {
     // Fetch active programs with only needed fields for better performance
     const { data: programs, error: programsError } = await supabase
       .from('programs')
-      .select('id, name, summary, source, eligibility, funding_amount, deadlines, contact_email, contact_phone, application_process, sectors, slug, source_domain, created_at')
+      .select('id, name, summary, source, eligibility, funding_amount, deadlines, contact_email, contact_phone, application_process, sectors, slug, source_domain, age, gender, ethnicity, created_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
@@ -136,6 +136,9 @@ export async function fetchPrograms(options = {}) {
         sectors: program.sectors || '',
         slug: program.slug,
         sourceDomain,
+        age: program.age || null,
+        gender: program.gender || null,
+        ethnicity: program.ethnicity || null,
         createdAt: program.created_at || null,
         subprograms: programSubprograms,
         // Keep original fields for compatibility
@@ -201,7 +204,7 @@ export async function fetchProgramBySlug(slug) {
   try {
     const { data: program, error } = await supabase
       .from('programs')
-      .select('*')
+      .select('id, name, summary, source, eligibility, funding_amount, deadlines, contact_email, contact_phone, application_process, sectors, slug, source_domain, age, gender, ethnicity, created_at')
       .eq('slug', slug)
       .eq('is_active', true)
       .single()
@@ -260,6 +263,9 @@ export async function fetchProgramBySlug(slug) {
       sectors: program.sectors || '',
       slug: program.slug,
       sourceDomain: program.source_domain || '',
+      age: program.age || null,
+      gender: program.gender || null,
+      ethnicity: program.ethnicity || null,
       subprograms: programSubprograms,
       parentProgram: null,
     }
@@ -280,7 +286,7 @@ export async function fetchSubprogramBySlugs(parentSlug, subprogramSlug) {
     // First fetch the parent program
     const { data: parentProgram, error: parentError } = await supabase
       .from('programs')
-      .select('*')
+      .select('id, name, summary, source, eligibility, funding_amount, deadlines, contact_email, contact_phone, application_process, sectors, slug, source_domain, age, gender, ethnicity, created_at')
       .eq('slug', parentSlug)
       .eq('is_active', true)
       .single()
@@ -316,6 +322,9 @@ export async function fetchSubprogramBySlugs(parentSlug, subprogramSlug) {
       sectors: parentProgram.sectors || '',
       slug: parentProgram.slug,
       sourceDomain: parentProgram.source_domain || '',
+      age: parentProgram.age || null,
+      gender: parentProgram.gender || null,
+      ethnicity: parentProgram.ethnicity || null,
     }
 
     // Transform subprogram

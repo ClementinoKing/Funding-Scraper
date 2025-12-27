@@ -100,6 +100,7 @@ export default function Dashboard() {
     // Filter out programs with no meaningful content
     const hasNoData = !summary || 
       summary === 'No summary available.' ||
+      summary === 'Not specified' ||
       summary.length < 10 ||
       (eligibility === 'Not specified.' || !eligibility)
     

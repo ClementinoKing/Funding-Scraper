@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2025-12-10T05:14:55.508Z",
+  "lastUpdated": "2025-12-17T09:01:01.706Z",
   "programs": [
     {
       "name": "Funding instruments - Technology Innovation Agency",
@@ -616,6 +616,7 @@
       "sectors": "enterprise, manufacturing"
     },
     {
+<<<<<<< HEAD
       "name": "DBSA Role and Procurement Status for National Department of Health PSA Oxygen Plant Project",
       "summary": "The DBSA Role and Procurement Status for National Department of Health PSA Oxygen Plant Project is a funding program that supports the development and funding of projects from conception to implementation.",
       "source": "https://www.dbsa.org",
@@ -714,6 +715,8 @@
       "targetAudience": "all"
     },
     {
+=======
+>>>>>>> dev-happy
       "name": "Local Government Support",
       "summary": "The local government sector is an investment area where the DBSA holds extensive expertise and we work with all three sectors of local government i.e. metros, secondary and under-resourced municipalities. ..",
       "source": "https://www.dbsa.org/sectors/local-government-support",
@@ -750,6 +753,7 @@
       "sectors": ""
     },
     {
+<<<<<<< HEAD
       "name": "The SADC Water Fund",
       "summary": "A Collaborative Approach to Water Security in Southern Africa",
       "source": "https://www.dbsa.org/solutions/sadc-water-fund",
@@ -760,6 +764,42 @@
       "contactPhone": "+27 11 313 3911",
       "applicationProcess": "2. The DBSA serves as project executing agency through a dedicated Project Implementing Unit (PIU); 5.9405299 28; Application ProcessSubmit to: SADCWaterFund@dbsa; Complete environmental and social assessmentsProvide a minimum 10% contribution (excluding taxes) from project owners Objectives The Fund prioritises projects that deliver poverty-focused and transboundary benefits to: Strengthen regional integration Align with Integrated Water Resources Management (IWRM) and the Nexus approach Are implementation-ready and included in national or regional masterplans. Consider environmental and social impacts Application ProcessSubmit to: SADCWaterFund@dbsa.orgRequired documents:Application letterProject detailsContact details of the organisationProject descriptionProject objectiveGeographical coverageCurrent project stageProject stage (for which the SADC Water Fund support is required)Development impactTotal cost & financing planFull background: technical details, financial position, institutional setup of the proposed project, environmental impacts and project benefits Selection process:Compliance checkEarly Assessment Report (EAR)Technical & financial due diligenceAppraisal Report (AR) for review of the Project Management BoardEvaluation criteria:Project sponsor capacityTechnical quality and cost efficiencyFinancial sustainabilityRegional integrationAlignment with IWRM & Nexus principles Kazungula Water Supply Project (Zambia) - Border town project at the crossroads of Zambia, Botswana, Zimbabwe, and Namibia. A water treatment and reticulation networkThe project is strategically located as it follows the construction of a new cross-border bridge over the Zambezi River. This enhances connectivity between Zambia and Botswana, thereby facilitating a regional trade corridorBeneficiaries: 12,500 residents + transient populationsStatus: Near completion, commissioned in May 2025 Lomahasha–Namaacha Cross-Border Project (Eswatini & Mozambique) Addresses the water supply challenges faced by the mountainous border towns Lomahasha (Eswatini) and Namaacha (Mozambique)Rising mains, reservoirs, distribution rehabilitationStatus: 25% complete; started October 2024, due May 2026 Ramotswa Transboundary Aquifer Project (Botswana & South Africa) Addresses the pressing challenge of groundwater contamination in the cross border aquiferTackling groundwater contaminationRequires additional studies for sustainable designStudy financed via SADC PPDF Contact DBSA -25.9405299 28.1353045 You must have JavaScript enabled to use this form",
       "sectors": "construction"
+=======
+      "name": "Welcome to GEP",
+      "summary": "The Gauteng Enterprise Propeller (GEP) promotes, fosters and develops small enterprises in Gauteng thereby implementing the policy of the Gauteng Provincial Government for small enterprise development.",
+      "source": "https://www.gep.co.za/",
+      "eligibility": "",
+      "fundingAmount": "",
+      "deadlines": "",
+      "contactEmail": "",
+      "contactPhone": "",
+      "applicationProcess": "",
+      "sectors": "enterprise"
+>>>>>>> dev-happy
+    },
+    {
+      "name": "Financial Support",
+      "summary": "Our financial support products include:",
+      "source": "https://www.gep.co.za/what-we-do/financial-support/",
+      "eligibility": "ication criteria for loans. Our financial support products include: Start-up Finance Contract Finance. Growth Finance Franchise Finance GEP Micro-finance *Applicants for contract finance are allowed more than one",
+      "fundingAmount": "",
+      "deadlines": "",
+      "contactEmail": "",
+      "contactPhone": "",
+      "applicationProcess": "APPLICATION PROCESS All applications for funding are done online using the GEP Online Application System; how to apply online GEP Financial Support  Township Economy Partnership Fund  SMME CRISIS PARTNERSHIP Fund  Gauteng Rebuild Fund  Partnership Marketing and Sponsorship",
+      "sectors": "enterprise, services, finance"
+    },
+    {
+      "name": "Non-financial Support",
+      "summary": "Gauteng Enterprise Propeller provides business development support interventions that play a catalytic role in transforming SMMEs, Co-operatives and Informal Traders towards being sustainable businesses.",
+      "source": "https://www.gep.co.za/what-we-do/non-financial-support/",
+      "eligibility": "",
+      "fundingAmount": "",
+      "deadlines": "",
+      "contactEmail": "",
+      "contactPhone": "",
+      "applicationProcess": "provides business development support interventions that play a catalytic role in transforming SMMEs, Co-operatives and Informal Traders towards being sustainable businesses. The Non-Financial support program is offered through the Regional Offices and includes: Gauteng’s revitalised township economies contributing to shared economic growth and development Gauteng’s SMMEs and Co-operatives actively participating in the province’s mainstream economy, including in the key economic sectors. Township Economies Revitalisation (TER) and Gauteng Informal Business Upliftment Strategy (GIBUS) projects effectively implemented. Non-Financial Support Programmes Accredited Training offered by accredited training providers In-house Training/Workshop offered by GEP officials Training by Corporate Partners offered through strategic partnerships Our training interventions include: Cooperatives Governance Business Plan Development Pricing and Costing Sales and Marketing Business Management Skills Bookkeeping Skills Financial Literacy skills Tendering Skills Entrepreneurship Skills Business Development Support Interventions PLANNING SUPPORT INTERVENTIONS Business plan Business expansion plan Business turnaround plan Productivity improvement plan Accounting / Bookkeeping Preparation of budgets Setting up debtors / creditors system Setting up a Stock Control System Costing & Pricing Cash Flow Management System Electronic Financial Management System Manual Financial Management System Marketing plan & strategy Printed Marketing Material (Can include Company logo, business cards, brochures, pamphlets, catalogues, magnetic car stickers, sign boards, street pole adds, document folders, letterheads, product labels)",
+      "sectors": "enterprise, finance"
     },
     {
       "name": "Overview",
@@ -879,7 +919,7 @@
       "contactEmail": "",
       "contactPhone": "",
       "applicationProcess": "Complete the form to receive the latest news straight in your inbox",
-      "sectors": "enterprise, finance"
+      "sectors": "finance, enterprise"
     }
   ]
 }

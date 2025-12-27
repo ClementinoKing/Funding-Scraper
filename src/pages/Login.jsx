@@ -1,23 +1,24 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { getCurrentSession, signInWithEmail, signInWithPhone, setToken, setUser } from '@/lib/auth'
+import { getCurrentSession, signInWithEmail, sendPhoneOTP, verifyPhoneOTP, setToken, setUser } from '@/lib/auth'
 import { validatePhone, normalizePhone, formatPhone } from '@/lib/utils'
-import { generateOTP, storeOTP, verifyOTP } from '@/lib/otp'
 import { supabase } from '@/lib/supabase'
 
 export default function Login() {
-  const [loginMethod, setLoginMethod] = useState('email') // 'email' or 'phone'
+  const [loginMethod, setLoginMethod] = useState('phone') // 'email' or 'phone'
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [showOTP, setShowOTP] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -27,7 +28,24 @@ export default function Login() {
     async function checkAuth() {
       const session = await getCurrentSession()
       if (session) {
-        navigate('/dashboard', { replace: true })
+        // Check if user has completed profile
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('profile_completed')
+            .eq('user_id', user.id)
+            .single()
+          
+          // If no profile or profile not completed, redirect to account creation
+          if (!profile || !profile.profile_completed) {
+            navigate('/account-creation', { replace: true })
+          } else {
+            navigate('/dashboard', { replace: true })
+          }
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
       }
     }
     checkAuth()
@@ -42,17 +60,44 @@ export default function Login() {
     }
 
     const normalizedPhone = normalizePhone(phone)
+    setLoading(true)
     
-    // Check if user exists by trying to sign in (this will fail if user doesn't exist)
-    // For custom OTP flow, we'll just generate and store OTP
-    // In production, you might want to verify the phone exists first
     try {
-      // Generate and store OTP
-      const otpCode = generateOTP()
-      storeOTP(normalizedPhone, otpCode)
+      // Use Supabase/Twilio to send OTP
+      const { data, error } = await sendPhoneOTP(normalizedPhone)
+      
+      if (error) {
+        // Handle specific Supabase/Twilio errors
+        const errorMessage = error.message || ''
+        
+        if (errorMessage.includes('Invalid From Number') || errorMessage.includes('caller ID') || errorMessage.includes('21212')) {
+          setError(
+            '⚠️ Twilio Configuration Error\n\n' +
+            'The SMS service is not properly configured. Please contact support or check:\n' +
+            '1. Supabase Dashboard → Authentication → Phone Auth\n' +
+            '2. Ensure Twilio phone number is configured\n' +
+            '3. Verify Twilio credentials are correct\n\n' +
+            'Error: Invalid From Number (caller ID)'
+          )
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+          setError('Too many OTP requests. Please wait a few minutes before trying again.')
+        } else if (errorMessage.includes('Invalid phone')) {
+          setError('Please enter a valid phone number with country code (e.g., +27 12 345 6789)')
+        } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          setError('Network error. Please check your connection and try again.')
+        } else {
+          setError(errorMessage || 'Failed to send OTP. Please try again.')
+        }
+        setLoading(false)
+        return
+      }
+      
       setShowOTP(true)
+      setLoading(false)
     } catch (err) {
+      console.error('OTP send error:', err)
       setError('Failed to send OTP. Please try again.')
+      setLoading(false)
     }
   }
 
@@ -85,14 +130,25 @@ export default function Login() {
         setToken(session.access_token)
         setUser(user)
         
-        const redirectTo = location.state?.from?.pathname || '/dashboard'
-        navigate(redirectTo, { replace: true })
+        // Check if user has completed profile
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('profile_completed')
+          .eq('user_id', user.id)
+          .single()
+        
+        // If no profile or profile not completed, redirect to account creation
+        if (!profile || !profile.profile_completed) {
+          navigate('/account-creation', { replace: true })
+        } else {
+          const redirectTo = location.state?.from?.pathname || '/dashboard'
+          navigate(redirectTo, { replace: true })
+        }
       } else {
-        // Phone login with custom OTP
+        // Phone login with Supabase OTP (passwordless)
         if (!showOTP) {
           // First step: send OTP
-          handleSendOTP()
-          setLoading(false)
+          await handleSendOTP()
           return
         }
 
@@ -104,22 +160,20 @@ export default function Login() {
         }
 
         const normalizedPhone = normalizePhone(phone)
-        const isValidOTP = verifyOTP(normalizedPhone, otp)
-
-        if (!isValidOTP) {
-          setError('Invalid or expired OTP code')
-          setLoading(false)
-          return
-        }
-
-        // After OTP verification, sign in with phone and password
-        const { user, session, error: authError } = await signInWithPhone(normalizedPhone, password)
+        
+        // Verify OTP with Supabase
+        const { user, session, error: authError } = await verifyPhoneOTP(normalizedPhone, otp)
 
         if (authError || !user || !session) {
-          if (authError?.message.includes('Invalid login')) {
-            setError('Invalid phone number or password')
+          // Handle specific Supabase/Twilio OTP errors
+          if (authError?.message?.includes('expired') || authError?.message?.includes('Expired')) {
+            setError('OTP code has expired. Please request a new one.')
+          } else if (authError?.message?.includes('Invalid') || authError?.message?.includes('invalid')) {
+            setError('Invalid OTP code. Please check and try again.')
+          } else if (authError?.message?.includes('rate limit') || authError?.message?.includes('too many')) {
+            setError('Too many verification attempts. Please request a new OTP code.')
           } else {
-            setError(authError?.message || 'Failed to sign in. Please try again.')
+            setError(authError?.message || 'Failed to verify OTP. Please try again.')
           }
           setLoading(false)
           return
@@ -128,8 +182,20 @@ export default function Login() {
         setToken(session.access_token)
         setUser(user)
         
-        const redirectTo = location.state?.from?.pathname || '/dashboard'
-        navigate(redirectTo, { replace: true })
+        // Check if user has completed profile
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('profile_completed')
+          .eq('user_id', user.id)
+          .single()
+        
+        // If no profile or profile not completed, redirect to account creation
+        if (!profile || !profile.profile_completed) {
+          navigate('/account-creation', { replace: true })
+        } else {
+          const redirectTo = location.state?.from?.pathname || '/dashboard'
+          navigate(redirectTo, { replace: true })
+        }
       }
     } catch (err) {
       console.error('Login error:', err)
@@ -154,12 +220,13 @@ export default function Login() {
                 setError('')
                 setShowOTP(false)
                 setOtp('')
+                setPassword('')
               }}
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="email">Email</TabsTrigger>
                 <TabsTrigger value="phone">Phone</TabsTrigger>
+                <TabsTrigger value="email">Email</TabsTrigger>
               </TabsList>
 
               {error && (
@@ -196,17 +263,32 @@ export default function Login() {
                         Forgot your password?
                       </a>
                     </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value)
-                        setError('')
-                      }}
-                      required
-                      disabled={loading}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value)
+                          setError('')
+                        }}
+                        required
+                        disabled={loading}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </Field>
                 </FieldGroup>
               </TabsContent>
@@ -253,7 +335,7 @@ export default function Login() {
                           className="text-center text-2xl tracking-widest"
                         />
                         <FieldDescription>
-                          Enter the 6-digit code sent to {formatPhone(phone)}
+                          Enter the 6-digit code sent to {formatPhone(phone)} via SMS
                         </FieldDescription>
                       </Field>
                       <div className="text-sm text-center">
@@ -268,24 +350,6 @@ export default function Login() {
                       </div>
                     </>
                   )}
-
-                  {showOTP && (
-                    <Field>
-                      <FieldLabel htmlFor="password">Password</FieldLabel>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value)
-                          setError('')
-                        }}
-                        required
-                        disabled={loading}
-                        placeholder="Enter your password"
-                      />
-                    </Field>
-                  )}
                 </FieldGroup>
               </TabsContent>
 
@@ -293,7 +357,9 @@ export default function Login() {
                 <div className="flex flex-col gap-2">
                   <Button type="submit" disabled={loading} className="w-full">
                     {loading 
-                      ? 'Signing in…' 
+                      ? loginMethod === 'phone' && !showOTP
+                        ? 'Sending OTP…'
+                        : 'Signing in…'
                       : loginMethod === 'phone' && !showOTP
                         ? 'Send OTP'
                         : 'Login'}
