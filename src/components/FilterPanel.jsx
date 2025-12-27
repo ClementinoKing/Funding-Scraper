@@ -10,37 +10,26 @@ import { cn } from '@/lib/utils'
 
 export function FilterPanel({ 
   sources = [], 
-  sectors = [],
   onFiltersChange,
   className 
 }) {
   const [isOpen, setIsOpen] = useState(true)
   const [selectedSources, setSelectedSources] = useState([])
-  const [selectedSectors, setSelectedSectors] = useState([])
 
   const handleSourceToggle = (source) => {
     const newSources = selectedSources.includes(source)
       ? selectedSources.filter(s => s !== source)
       : [...selectedSources, source]
     setSelectedSources(newSources)
-    onFiltersChange?.({ sources: newSources, sectors: selectedSectors })
-  }
-
-  const handleSectorToggle = (sector) => {
-    const newSectors = selectedSectors.includes(sector)
-      ? selectedSectors.filter(s => s !== sector)
-      : [...selectedSectors, sector]
-    setSelectedSectors(newSectors)
-    onFiltersChange?.({ sources: selectedSources, sectors: newSectors })
+    onFiltersChange?.({ sources: newSources })
   }
 
   const clearAllFilters = () => {
     setSelectedSources([])
-    setSelectedSectors([])
-    onFiltersChange?.({ sources: [], sectors: [] })
+    onFiltersChange?.({ sources: [] })
   }
 
-  const hasActiveFilters = selectedSources.length > 0 || selectedSectors.length > 0
+  const hasActiveFilters = selectedSources.length > 0
 
   return (
     <Card className={cn('sticky top-4', className)}>
@@ -99,29 +88,6 @@ export function FilterPanel({
 
           <Separator />
 
-          {/* Sectors Filter */}
-          {sectors.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium mb-3 block">Sectors</Label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {sectors.map((sector) => (
-                  <div key={sector} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`sector-${sector}`}
-                      checked={selectedSectors.includes(sector)}
-                      onCheckedChange={() => handleSectorToggle(sector)}
-                    />
-                    <Label
-                      htmlFor={`sector-${sector}`}
-                      className="text-sm font-normal cursor-pointer flex-1"
-                    >
-                      {sector}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Active Filters */}
           {hasActiveFilters && (
@@ -136,15 +102,6 @@ export function FilterPanel({
                       <X
                         className="h-3 w-3 cursor-pointer"
                         onClick={() => handleSourceToggle(source)}
-                      />
-                    </Badge>
-                  ))}
-                  {selectedSectors.map((sector) => (
-                    <Badge key={sector} variant="secondary" className="gap-1">
-                      {sector}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => handleSectorToggle(sector)}
                       />
                     </Badge>
                   ))}

@@ -402,22 +402,6 @@ export default function Profile() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Sectors</Label>
-                <div className="p-3 bg-muted rounded-md">
-                  {profile.sectors && profile.sectors.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {profile.sectors.map((sector, index) => (
-                        <span key={index} className="px-2 py-1 bg-background rounded text-sm">
-                          {sector}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">No sectors selected</span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
                 <Label>Funding Types</Label>
                 <div className="p-3 bg-muted rounded-md">
                   {profile.funding_types && profile.funding_types.length > 0 ? (

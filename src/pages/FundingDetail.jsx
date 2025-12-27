@@ -354,38 +354,6 @@ export default function FundingDetail() {
                   </h1>
                 </div>
               </div>
-
-              {/* Key Metrics */}
-              {(program.fundingAmount || program.deadlines) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  {program.fundingAmount && (
-                    <div className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
-                      <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                        <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Funding Amount</p>
-                        <p className="text-base font-semibold text-foreground mt-1 truncate">
-                          {program.fundingAmount}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {program.deadlines && (
-                    <div className="flex items-center gap-4 p-4 rounded-xl border bg-card hover:bg-accent/50 transition-colors">
-                      <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deadline</p>
-                        <p className="text-base font-semibold text-foreground mt-1 truncate">
-                          {program.deadlines}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Content Sections */}
@@ -422,6 +390,131 @@ export default function FundingDetail() {
                     </p>
                   </div>
                 </section>
+
+                {/* Funding Amount */}
+                {program.fundingAmount && (
+                  <>
+                    <Separator className="my-8" />
+                    <section className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2">
+                        <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                          <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Funding Amount</h2>
+                      </div>
+                      <div className="pl-10">
+                        {program.fundingAmount.includes(';') ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {(() => {
+                              // Function to format numbers with commas
+                              const formatAmount = (amountStr) => {
+                                // Replace numbers (including decimals) with comma-formatted versions
+                                return amountStr.replace(/(\d+\.?\d*)/g, (match) => {
+                                  // Skip if already has commas
+                                  if (match.includes(',')) return match
+                                  
+                                  // Split by decimal point
+                                  const parts = match.split('.')
+                                  const integerPart = parts[0]
+                                  
+                                  // Add commas to integer part
+                                  const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                                  
+                                  // Rejoin with decimal part if exists
+                                  return parts.length > 1 ? `${formattedInteger}.${parts[1]}` : formattedInteger
+                                })
+                              }
+                              
+                              // Parse and sort amounts from highest to lowest
+                              const amounts = program.fundingAmount
+                                .split(';')
+                                .map((amount) => amount.trim())
+                                .filter((amount) => amount.length > 0)
+                              
+                              // Function to convert amount string to numeric value for sorting
+                              const parseAmount = (amountStr) => {
+                                const cleanStr = amountStr.toLowerCase().replace(/[r,\s]/g, '')
+                                
+                                // Extract number and multiplier
+                                const billionMatch = cleanStr.match(/([\d.]+)\s*billion/i)
+                                const millionMatch = cleanStr.match(/([\d.]+)\s*million/i)
+                                const thousandMatch = cleanStr.match(/([\d.]+)\s*thousand/i)
+                                
+                                if (billionMatch) {
+                                  return parseFloat(billionMatch[1]) * 1000000000
+                                } else if (millionMatch) {
+                                  return parseFloat(millionMatch[1]) * 1000000
+                                } else if (thousandMatch) {
+                                  return parseFloat(thousandMatch[1]) * 1000
+                                } else {
+                                  // Try to extract just the number
+                                  const numberMatch = cleanStr.match(/([\d.]+)/)
+                                  if (numberMatch) {
+                                    const num = parseFloat(numberMatch[1])
+                                    // If it's a large number without suffix, assume it's already in base units
+                                    return num >= 1000000 ? num : num * 1000000
+                                  }
+                                  return 0
+                                }
+                              }
+                              
+                              // Sort amounts from highest to lowest
+                              const sortedAmounts = amounts.sort((a, b) => {
+                                const valueA = parseAmount(a)
+                                const valueB = parseAmount(b)
+                                return valueB - valueA // Descending order
+                              })
+                              
+                              return sortedAmounts.map((amount, index) => {
+                                const formattedAmount = formatAmount(amount)
+                                return (
+                                  <div 
+                                    key={index} 
+                                    className="flex items-center gap-2 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors border border-transparent hover:border-border"
+                                  >
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-600 dark:bg-green-400 flex-shrink-0"></div>
+                                    <span className="text-sm leading-relaxed text-foreground font-medium">
+                                      {formattedAmount}
+                                    </span>
+                                  </div>
+                                )
+                              })
+                            })()}
+                          </div>
+                        ) : (
+                          <p className="text-sm leading-relaxed text-foreground">
+                            {program.fundingAmount.includes(',') ? program.fundingAmount : program.fundingAmount.replace(/(\d+\.?\d*)/g, (match) => {
+                              if (match.includes(',')) return match
+                              const parts = match.split('.')
+                              const formattedInteger = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+                              return parts.length > 1 ? `${formattedInteger}.${parts[1]}` : formattedInteger
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  </>
+                )}
+
+                {/* Deadline */}
+                {program.deadlines && (
+                  <>
+                    <Separator className="my-8" />
+                    <section className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2">
+                        <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                          <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <h2 className="text-xl font-semibold">Deadline</h2>
+                      </div>
+                      <div className="pl-10">
+                        <p className="text-sm leading-relaxed text-foreground">
+                          {program.deadlines}
+                        </p>
+                      </div>
+                    </section>
+                  </>
+                )}
 
                 {/* Source */}
                 {program.source && (

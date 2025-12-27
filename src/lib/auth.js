@@ -287,6 +287,90 @@ export async function signInWithPhone(phone, password) {
 }
 
 /**
+ * Send OTP to phone number using Supabase/Twilio
+ * @param {string} phone - User phone number
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function sendPhoneOTP(phone) {
+  try {
+    const normalizedPhone = normalizePhone(phone)
+    
+    const { data, error } = await supabase.auth.signInWithOtp({
+      phone: normalizedPhone
+    })
+
+    if (error) {
+      console.error('OTP send error:', error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (error) {
+    console.error('OTP send exception:', error)
+    return { data: null, error: { message: error.message || 'Failed to send OTP' } }
+  }
+}
+
+/**
+ * Verify OTP code for phone number
+ * @param {string} phone - User phone number
+ * @param {string} otp - OTP code
+ * @returns {Promise<{user: Object|null, session: Object|null, error: Error|null}>}
+ */
+export async function verifyPhoneOTP(phone, otp) {
+  try {
+    const normalizedPhone = normalizePhone(phone)
+    
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone: normalizedPhone,
+      token: otp,
+      type: 'sms'
+    })
+
+    if (error) {
+      return { user: null, session: null, error }
+    }
+
+    // Store session info for backward compatibility
+    if (data.session) {
+      setToken(data.session.access_token)
+      setUser(data.user)
+    }
+
+    return { user: data.user, session: data.session, error: null }
+  } catch (error) {
+    return { user: null, session: null, error }
+  }
+}
+
+/**
+ * Sign up with phone number using OTP (passwordless)
+ * Uses signInWithOtp - Supabase will create user if doesn't exist
+ * @param {string} phone - User phone number
+ * @returns {Promise<{data: Object|null, error: Error|null}>}
+ */
+export async function signUpWithPhoneOTP(phone) {
+  try {
+    const normalizedPhone = normalizePhone(phone)
+    
+    // For signup, use signInWithOtp - Supabase will create user if doesn't exist
+    const { data, error } = await supabase.auth.signInWithOtp({
+      phone: normalizedPhone
+    })
+
+    if (error) {
+      console.error('Phone signup OTP error:', error)
+      return { data: null, error }
+    }
+
+    return { data, error: null }
+  } catch (error) {
+    console.error('Phone signup OTP exception:', error)
+    return { data: null, error: { message: error.message || 'Failed to send OTP' } }
+  }
+}
+
+/**
  * Create or update user profile in database
  * This can help work around database trigger issues
  * @param {Object} profileData - Profile data to insert/update
