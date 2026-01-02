@@ -21,6 +21,15 @@ import { supabase } from '@/lib/supabase'
 import { CheckCircle2, ArrowRight, ArrowLeft, User, Building2, TrendingUp, DollarSign, FileCheck, Shield } from 'lucide-react'
 import { getFundingCategory } from '@/lib/ai';
 
+import { CalendarIcon } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from '@/components/ui/calendar';
+import { format } from "date-fns";
+
 const libraries = ['places']
 const mapContainerStyle = {
   width: '100%',
@@ -947,14 +956,36 @@ export default function AccountCreation() {
                     </Field>
                     <Field>
                       <FieldLabel htmlFor="dob">Date of Birth</FieldLabel>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={formData.dob}
-                        onChange={(e) => updateFormData('dob', e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
-                        className={errors.dob ? 'border-red-500' : ''}
-                      />
+
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.dob && "text-muted-foreground",
+                              errors.dob && 'border-red-500'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.dob
+                                    ? format(new Date(formData.dob), "PPP")
+                                    : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            defaultMonth={formData.dob ? new Date(formData.dob) : undefined}
+                            selected={formData.dob ? new Date(formData.dob) : null}
+                            onSelect={(date) =>
+                              updateFormData('dob', date)
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+
                       <FieldDescription>Optional - Used for age verification</FieldDescription>
                       {errors.dob && (
                         <p className="text-sm text-red-500 mt-1">{errors.dob}</p>
@@ -1163,15 +1194,34 @@ export default function AccountCreation() {
                     <div className="grid grid-cols-2 gap-4">
                       <Field>
                         <FieldLabel htmlFor="businessRegistrationDate">Business Registration Date *</FieldLabel>
-                        <Input
-                          id="businessRegistrationDate"
-                          type="date"
-                          value={formData.businessRegistrationDate}
-                          onChange={(e) => updateFormData('businessRegistrationDate', e.target.value)}
-                          max={new Date().toISOString().split('T')[0]}
-                          required
-                          className={errors.businessRegistrationDate ? 'border-red-500' : ''}
-                        />
+                        <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !formData.businessRegistrationDate && "text-muted-foreground",
+                              errors.businessRegistrationDate && 'border-red-500'
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData.businessRegistrationDate
+                                    ? format(new Date(formData.businessRegistrationDate), "PPP")
+                                    : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            defaultMonth={formData.businessRegistrationDate ? new Date(formData.businessRegistrationDate) : new Date()}
+                            selected={formData.businessRegistrationDate ? new Date(formData.businessRegistrationDate) : null}
+                            onSelect={(date) =>
+                              updateFormData('businessRegistrationDate', date)
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                         {errors.businessRegistrationDate && (
                           <p className="text-sm text-red-500 mt-1">{errors.businessRegistrationDate}</p>
                         )}

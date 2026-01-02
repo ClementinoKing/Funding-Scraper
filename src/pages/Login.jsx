@@ -24,6 +24,11 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  const [dateRange, setDateRange] = useState({
+    from: undefined,
+    to: undefined,
+  });
+
   useEffect(() => {
     async function checkAuth() {
       const session = await getCurrentSession()
