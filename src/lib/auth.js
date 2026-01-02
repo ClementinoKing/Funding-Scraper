@@ -1,5 +1,7 @@
 import { isEmail, isPhone, normalizePhone } from './utils'
 import { supabase } from './supabase'
+import { clearSavedProgramsCache } from './savedPrograms'
+import { clearUserProfileCache } from './userProfile'
 
 const TOKEN_KEY = 'auth_token'
 const USER_KEY = 'auth_user'
@@ -425,12 +427,16 @@ export async function signOut() {
     // Clear local storage
     clearToken()
     clearUser()
+    clearSavedProgramsCache() // Clear saved programs cache on logout
+    clearUserProfileCache() // Clear user profile cache on logout
     
     return { error: error || null }
   } catch (error) {
     // Clear local storage even if signOut fails
     clearToken()
     clearUser()
+    clearSavedProgramsCache() // Clear saved programs cache on logout
+    clearUserProfileCache() // Clear user profile cache on logout
     return { error }
   }
 }

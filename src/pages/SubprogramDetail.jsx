@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { slugifyFunding } from '@/lib/utils'
 import { signOut } from '@/lib/auth'
-import { fetchPrograms } from '@/lib/programs'
+import { usePrograms } from '@/contexts/ProgramsContext'
 import { saveProgram, unsaveProgram, checkSavedStatus } from '@/lib/savedPrograms'
 import {
   ArrowLeft,
@@ -28,12 +28,13 @@ import {
 export default function SubprogramDetail() {
   const { parentSlug, subprogramSlug } = useParams()
   const navigate = useNavigate()
-  const [programs, setPrograms] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { programs: allPrograms, loading: programsLoading, error: programsError } = usePrograms()
   const [copied, setCopied] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+
+  const loading = programsLoading
+  const error = programsError || ''
 
   async function logout() {
     await signOut()
@@ -85,35 +86,13 @@ export default function SubprogramDetail() {
     }
   }
 
-  useEffect(() => {
-    let isMounted = true
-    async function load() {
-      try {
-        setLoading(true)
-        const data = await fetchPrograms()
-        if (!isMounted) return
-        setPrograms(Array.isArray(data) ? data : [])
-      } catch (e) {
-        if (!isMounted) return
-        console.error('Error loading programs:', e)
-        setError('Failed to load funding data. Please try again later.')
-      } finally {
-        if (isMounted) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
   const { parentProgram, subprogram } = useMemo(() => {
-    if (!parentSlug || !subprogramSlug || programs.length === 0) {
+    if (!parentSlug || !subprogramSlug || allPrograms.length === 0) {
       return { parentProgram: null, subprogram: null }
     }
 
     // Find parent program - try slug first, then fall back to slugifyFunding
-    const parent = programs.find((p) => 
+    const parent = allPrograms.find((p) => 
       p.slug === parentSlug || slugifyFunding(p.name, p.source) === parentSlug
     )
     if (!parent || !parent.subprograms) {
@@ -126,7 +105,7 @@ export default function SubprogramDetail() {
     )
 
     return { parentProgram: parent, subprogram: sub || null }
-  }, [parentSlug, subprogramSlug, programs])
+  }, [parentSlug, subprogramSlug, allPrograms])
 
   const otherSubprograms = useMemo(() => {
     if (!parentProgram || !subprogram) return []

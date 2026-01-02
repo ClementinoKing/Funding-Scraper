@@ -9,7 +9,7 @@ import { slugifyFunding, cn } from '@/lib/utils'
 import { signOut } from '@/lib/auth'
 import { usePrograms } from '@/contexts/ProgramsContext'
 import { saveProgram, unsaveProgram, checkSavedStatus } from '@/lib/savedPrograms'
-import { supabase } from '@/lib/supabase'
+import { fetchUserProfile } from '@/lib/userProfile'
 import { checkProgramQualification, filterQualifiedPrograms } from '@/lib/profileMatching'
 import { CircularProgress } from '@/components/CircularProgress'
 import {
@@ -40,23 +40,14 @@ export default function FundingDetail() {
   const [profileLoading, setProfileLoading] = useState(true)
   const error = contextError || ''
 
-  // Fetch user profile
+  // Fetch user profile with caching
   useEffect(() => {
-    async function fetchUserProfile() {
+    async function loadUserProfile() {
       try {
         setProfileLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
-          
-          if (!profileError && profile) {
-            setUserProfile(profile)
-          }
+        const result = await fetchUserProfile(true) // Use cache
+        if (result.success) {
+          setUserProfile(result.profile)
         }
       } catch (err) {
         console.error('Error fetching user profile:', err)
@@ -65,7 +56,7 @@ export default function FundingDetail() {
       }
     }
 
-    fetchUserProfile()
+    loadUserProfile()
   }, [])
 
   async function logout() {

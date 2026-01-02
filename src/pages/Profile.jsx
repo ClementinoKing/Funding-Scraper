@@ -11,6 +11,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { clearUserProfileCache } from '@/lib/userProfile'
 import { User, Building2, TrendingUp, DollarSign, Loader2 } from 'lucide-react'
 
 export default function Profile() {
@@ -94,6 +95,9 @@ export default function Profile() {
         setError('Failed to save profile. Please try again.')
         return
       }
+
+      // Clear user profile cache so fresh data is fetched next time
+      clearUserProfileCache()
 
       // Show success message
       setError('')

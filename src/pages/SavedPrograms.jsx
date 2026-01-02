@@ -18,18 +18,25 @@ export default function SavedPrograms() {
   const [savedPrograms, setSavedPrograms] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     loadSavedPrograms()
   }, [])
 
-  async function loadSavedPrograms() {
-    setLoading(true)
+  async function loadSavedPrograms(showLoading = true) {
+    if (showLoading) {
+      setLoading(true)
+    } else {
+      setIsRefreshing(true)
+    }
     setError(null)
     try {
-      const result = await fetchSavedPrograms()
+      const result = await fetchSavedPrograms(true) // Use cache by default
       if (result.success) {
         setSavedPrograms(result.data || [])
+        // If data came from cache, it will refresh in the background automatically
+        // If not from cache, we're already showing fresh data
       } else {
         setError(result.error || 'Failed to load saved programs')
       }
@@ -37,6 +44,7 @@ export default function SavedPrograms() {
       setError(err.message || 'Failed to load saved programs')
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }
 
@@ -67,11 +75,23 @@ export default function SavedPrograms() {
         <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl mx-auto w-full">
           <Breadcrumbs items={[{ label: 'Saved Programs' }]} className="mb-6" />
           
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2">Saved Programs</h1>
-            <p className="text-muted-foreground">
-              Your saved funding opportunities
-            </p>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Saved Programs</h1>
+              <p className="text-muted-foreground">
+                Your saved funding opportunities
+              </p>
+            </div>
+            {!loading && savedPrograms.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadSavedPrograms(false)}
+                disabled={isRefreshing}
+              >
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </Button>
+            )}
           </div>
 
           {loading ? (
