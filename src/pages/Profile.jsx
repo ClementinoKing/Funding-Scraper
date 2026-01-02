@@ -11,6 +11,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { clearUserProfileCache } from '@/lib/userProfile'
 import { User, Building2, TrendingUp, DollarSign, Loader2 } from 'lucide-react'
 
 export default function Profile() {
@@ -94,6 +95,9 @@ export default function Profile() {
         setError('Failed to save profile. Please try again.')
         return
       }
+
+      // Clear user profile cache so fresh data is fetched next time
+      clearUserProfileCache()
 
       // Show success message
       setError('')
@@ -400,22 +404,6 @@ export default function Profile() {
                   className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   rows={4}
                 />
-              </div>
-              <div className="space-y-2">
-                <Label>Sectors</Label>
-                <div className="p-3 bg-muted rounded-md">
-                  {profile.sectors && profile.sectors.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {profile.sectors.map((sector, index) => (
-                        <span key={index} className="px-2 py-1 bg-background rounded text-sm">
-                          {sector}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">No sectors selected</span>
-                  )}
-                </div>
               </div>
               <div className="space-y-2">
                 <Label>Funding Types</Label>

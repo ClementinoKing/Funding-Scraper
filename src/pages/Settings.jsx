@@ -11,6 +11,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { useNavigate } from 'react-router-dom'
 import { signOut, getCurrentUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+import { clearUserProfileCache } from '@/lib/userProfile'
 import { 
   Bell, 
   Sun, 
@@ -101,6 +102,9 @@ export default function Settings() {
         setError('Failed to save settings. Please try again.')
         return
       }
+
+      // Clear user profile cache so fresh data is fetched next time
+      clearUserProfileCache()
 
       setSuccess('Settings saved successfully!')
       setTimeout(() => setSuccess(''), 3000)

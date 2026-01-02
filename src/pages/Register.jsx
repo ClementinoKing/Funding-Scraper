@@ -6,13 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { getCurrentSession, signUpWithEmail, signUpWithPhone, setToken } from '@/lib/auth'
+import { getCurrentSession, signUpWithEmail, signUpWithPhoneOTP, verifyPhoneOTP, setToken } from '@/lib/auth'
 import { validatePhone, normalizePhone, formatPhone, isEmail } from '@/lib/utils'
-import { generateOTP, storeOTP, verifyOTP } from '@/lib/otp'
 import { supabase } from '@/lib/supabase'
 
 export default function Register() {
-  const [registrationMethod, setRegistrationMethod] = useState('email') // 'email' or 'phone'
+  const [registrationMethod, setRegistrationMethod] = useState('phone') // 'email' or 'phone'
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -31,8 +30,25 @@ export default function Register() {
       // If user has session but also has temp_registration, they're in the signup flow
       // Don't redirect them - let them complete account creation
       if (session && !tempReg) {
-        // User is authenticated and profile is complete, redirect to dashboard
-        navigate('/dashboard', { replace: true })
+        // Check if user has completed profile
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('profile_completed')
+            .eq('user_id', user.id)
+            .single()
+          
+          // If profile exists and is completed, redirect to dashboard
+          if (profile && profile.profile_completed) {
+            navigate('/dashboard', { replace: true })
+          } else {
+            // User is authenticated but no profile, redirect to account creation
+            navigate('/account-creation', { replace: true })
+          }
+        } else {
+          navigate('/dashboard', { replace: true })
+        }
       } else if (session && tempReg) {
         // User just signed up, redirect to account creation
         navigate('/account-creation', { replace: true })
@@ -63,16 +79,46 @@ export default function Register() {
     }
 
     const normalizedPhone = normalizePhone(phone)
+    setLoading(true)
     
-    // Check if phone number is already registered by trying to sign in
-    // Note: In production, you might want a better way to check this
     try {
-      // Generate and store OTP
-      const otpCode = generateOTP()
-      storeOTP(normalizedPhone, otpCode)
+      // Use Supabase/Twilio to send OTP for registration
+      const { data, error } = await signUpWithPhoneOTP(normalizedPhone)
+      
+      if (error) {
+        // Handle specific Supabase/Twilio errors
+        const errorMessage = error.message || ''
+        
+        if (errorMessage.includes('Invalid From Number') || errorMessage.includes('caller ID') || errorMessage.includes('21212')) {
+          setError(
+            '⚠️ Twilio Configuration Error\n\n' +
+            'The SMS service is not properly configured. Please contact support or check:\n' +
+            '1. Supabase Dashboard → Authentication → Phone Auth\n' +
+            '2. Ensure Twilio phone number is configured\n' +
+            '3. Verify Twilio credentials are correct\n\n' +
+            'Error: Invalid From Number (caller ID)'
+          )
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+          setError('Too many OTP requests. Please wait a few minutes before trying again.')
+        } else if (errorMessage.includes('Invalid phone')) {
+          setError('Please enter a valid phone number with country code (e.g., +27 12 345 6789)')
+        } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          setError('Network error. Please check your connection and try again.')
+        } else if (errorMessage.includes('already registered') || errorMessage.includes('already exists')) {
+          setError('An account with this phone number already exists. Please sign in instead.')
+        } else {
+          setError(errorMessage || 'Failed to send OTP. Please try again.')
+        }
+        setLoading(false)
+        return
+      }
+      
       setShowOTP(true)
+      setLoading(false)
     } catch (err) {
+      console.error('OTP send error:', err)
       setError('Failed to send OTP. Please try again.')
+      setLoading(false)
     }
   }
 
@@ -90,7 +136,22 @@ export default function Register() {
         setError('Invalid email format')
         return false
       }
+      
+      // Password validation for email registration
+      if (!password) {
+        setError('Password is required')
+        return false
+      }
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters')
+        return false
+      }
+      if (password !== confirmPassword) {
+        setError('Passwords do not match')
+        return false
+      }
     } else {
+      // Phone registration (passwordless)
       if (!validatePhone(phone)) {
         setError('Please enter a valid phone number')
         return false
@@ -105,28 +166,8 @@ export default function Register() {
         setError('Please enter the 6-digit OTP code')
         return false
       }
-      
-      const normalizedPhone = normalizePhone(phone)
-      const isValidOTP = verifyOTP(normalizedPhone, otp)
-      
-      if (!isValidOTP) {
-        setError('Invalid or expired OTP code')
-        return false
-      }
     }
     
-    if (!password) {
-      setError('Password is required')
-      return false
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      return false
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return false
-    }
     return true
   }
 
@@ -136,11 +177,14 @@ export default function Register() {
 
     // For phone registration, handle OTP sending first
     if (registrationMethod === 'phone' && !showOTP) {
-      handleSendOTP()
+      await handleSendOTP()
       return
     }
 
-    if (!(await validateForm())) return
+    if (!(await validateForm())) {
+      setLoading(false)
+      return
+    }
 
     setLoading(true)
 
@@ -211,21 +255,29 @@ export default function Register() {
         }
 
       } else {
-        // Phone registration - verify OTP first, then sign up
+        // Phone registration - verify OTP (passwordless)
         const normalizedPhone = normalizePhone(phone)
         
-        result = await signUpWithPhone(normalizedPhone, password)
+        if (!otp || otp.length !== 6) {
+          setError('Please enter the 6-digit OTP code')
+          setLoading(false)
+          return
+        }
         
-        if (result.error) {
-          // Handle Supabase errors
-          console.error('Phone registration error:', result.error)
+        // Verify OTP with Supabase
+        const { user, session, error: authError } = await verifyPhoneOTP(normalizedPhone, otp)
+        
+        if (authError || !user || !session) {
+          // Handle specific Supabase/Twilio OTP errors
+          const errorMessage = authError?.message || ''
           
-          // Check for specific error types
-          const errorMessage = result.error.message || ''
-          const errorStatus = result.error.status || ''
-          
-          if (errorStatus === 500 || errorMessage.includes('500') || errorMessage.includes('Database error')) {
-            // Database error - likely a trigger issue
+          if (errorMessage.includes('expired') || errorMessage.includes('Expired')) {
+            setError('OTP code has expired. Please request a new one.')
+          } else if (errorMessage.includes('Invalid') || errorMessage.includes('invalid')) {
+            setError('Invalid OTP code. Please check and try again.')
+          } else if (errorMessage.includes('rate limit') || errorMessage.includes('too many')) {
+            setError('Too many verification attempts. Please request a new OTP code.')
+          } else if (errorMessage.includes('500') || errorMessage.includes('Database error')) {
             setError(
               '⚠️ Database configuration error detected.\n\n' +
               'QUICK FIX:\n' +
@@ -235,12 +287,6 @@ export default function Register() {
               'See DATABASE_SETUP.md for detailed instructions.\n\n' +
               `Error: ${errorMessage}`
             )
-          } else if (errorMessage.includes('already registered') || errorMessage.includes('already exists') || errorMessage.includes('User already registered')) {
-            setError('An account with this phone number already exists')
-          } else if (errorMessage.includes('Password') || errorMessage.includes('password')) {
-            setError('Password does not meet requirements')
-          } else if (errorMessage.includes('Invalid phone')) {
-            setError('Please enter a valid phone number')
           } else {
             setError(errorMessage || 'Failed to create account. Please try again.')
           }
@@ -248,15 +294,9 @@ export default function Register() {
           return
         }
 
-        if (!result.user) {
-          setError('Failed to create account. Please try again.')
-          setLoading(false)
-          return
-        }
-
         // Store temporary registration data
         const tempRegistration = {
-          id: result.user.id,
+          id: user.id,
           loginMethod: 'phone',
           email: null,
           phone: normalizedPhone,
@@ -267,7 +307,6 @@ export default function Register() {
         localStorage.setItem('temp_registration', JSON.stringify(tempRegistration))
         
         // Set temporary token
-        const { data: { session } } = await supabase.auth.getSession()
         if (session) {
           setToken(session.access_token)
         }
@@ -291,7 +330,23 @@ export default function Register() {
           <CardDescription>Choose your preferred registration method</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit}>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault()
+              // Only submit if the submit button was explicitly clicked
+              const submitter = e.nativeEvent?.submitter
+              if (submitter?.type === 'submit' || (submitter?.tagName === 'BUTTON' && submitter?.getAttribute('type') === 'submit')) {
+                onSubmit(e)
+              }
+            }}
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting form automatically
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          >
             <Tabs 
               value={registrationMethod} 
               onValueChange={(value) => {
@@ -301,12 +356,14 @@ export default function Register() {
                 setOtp('')
                 setEmail('')
                 setPhone('')
+                setPassword('')
+                setConfirmPassword('')
               }}
               className="w-full"
             >
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="email">Email</TabsTrigger>
                 <TabsTrigger value="phone">Phone</TabsTrigger>
+                <TabsTrigger value="email">Email</TabsTrigger>
               </TabsList>
 
               {error && (
@@ -370,7 +427,7 @@ export default function Register() {
                           className="text-center text-2xl tracking-widest"
                         />
                         <FieldDescription>
-                          Enter the 6-digit code sent to {formatPhone(phone)}
+                          Enter the 6-digit code sent to {formatPhone(phone)} via SMS
                         </FieldDescription>
                       </Field>
                       <div className="text-sm text-center">
@@ -388,43 +445,47 @@ export default function Register() {
                 </FieldGroup>
               </TabsContent>
 
-              {/* Common Fields (Password) */}
-              <div className="mt-4">
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => updateField('password', e.target.value)}
-                      required
-                      minLength={6}
-                      disabled={loading}
-                      className={error && error.includes('Password') ? 'border-red-500' : ''}
-                    />
-                    <FieldDescription>Must be at least 6 characters</FieldDescription>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => updateField('confirmPassword', e.target.value)}
-                      required
-                      disabled={loading}
-                      className={error && error.includes('match') ? 'border-red-500' : ''}
-                    />
-                  </Field>
-                </FieldGroup>
-              </div>
+              {/* Password Fields (Email Registration Only) */}
+              {registrationMethod === 'email' && (
+                <div className="mt-4">
+                  <FieldGroup>
+                    <Field>
+                      <FieldLabel htmlFor="password">Password</FieldLabel>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => updateField('password', e.target.value)}
+                        required
+                        minLength={6}
+                        disabled={loading}
+                        className={error && error.includes('Password') ? 'border-red-500' : ''}
+                      />
+                      <FieldDescription>Must be at least 6 characters</FieldDescription>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="confirmPassword">Confirm Password</FieldLabel>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => updateField('confirmPassword', e.target.value)}
+                        required
+                        disabled={loading}
+                        className={error && error.includes('match') ? 'border-red-500' : ''}
+                      />
+                    </Field>
+                  </FieldGroup>
+                </div>
+              )}
 
               <div className="mt-6">
                 <div className="flex flex-col gap-2">
                   <Button type="submit" disabled={loading} className="w-full">
                     {loading 
-                      ? 'Creating Account...' 
+                      ? registrationMethod === 'phone' && !showOTP
+                        ? 'Sending OTP...'
+                        : 'Creating Account...'
                       : registrationMethod === 'phone' && !showOTP
                         ? 'Send OTP'
                         : 'Continue'}

@@ -15,7 +15,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { EmptyState } from '@/components/EmptyState'
 import { signOut } from '@/lib/auth'
 import { usePrograms } from '@/contexts/ProgramsContext'
-import { supabase } from '@/lib/supabase'
+import { fetchUserProfile } from '@/lib/userProfile'
 import { scoreAllPrograms, filterQualifiedPrograms } from '@/lib/profileMatching'
 import {
   TrendingUp,
@@ -40,23 +40,14 @@ export default function Dashboard() {
   const itemsPerPage = 12
   const error = contextError || ''
 
-  // Fetch user profile
+  // Fetch user profile with caching
   useEffect(() => {
-    async function fetchUserProfile() {
+    async function loadUserProfile() {
       try {
         setProfileLoading(true)
-        const { data: { user } } = await supabase.auth.getUser()
-        
-        if (user) {
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', user.id)
-            .single()
-          
-          if (!profileError && profile) {
-            setUserProfile(profile)
-          }
+        const result = await fetchUserProfile(true) // Use cache
+        if (result.success) {
+          setUserProfile(result.profile)
         }
       } catch (err) {
         console.error('Error fetching user profile:', err)
@@ -65,7 +56,7 @@ export default function Dashboard() {
       }
     }
 
-    fetchUserProfile()
+    loadUserProfile()
   }, [])
 
   // Show qualified programs only when user has a profile
@@ -74,6 +65,24 @@ export default function Dashboard() {
   async function logout() {
     await signOut()
     navigate('/login', { replace: true })
+  }
+
+  // Helper function to check if a deadline is actually specified
+  const hasActualDeadline = (deadline) => {
+    if (!deadline) return false
+    const deadlineLower = deadline.trim().toLowerCase()
+    // Check for common "not specified" variations
+    return !(
+      deadlineLower === 'not specified' ||
+      deadlineLower === 'not specified.' ||
+      deadlineLower === 'no deadline' ||
+      deadlineLower === 'no deadlines' ||
+      deadlineLower === 'ongoing' ||
+      deadlineLower === 'n/a' ||
+      deadlineLower === 'na' ||
+      deadlineLower === '' ||
+      deadlineLower.length < 3
+    )
   }
 
   // Filter out poorly scraped programs
@@ -92,8 +101,8 @@ export default function Dashboard() {
       return false
     }
     
-    // Keep programs that have funding info or deadlines (useful data)
-    if (p.fundingAmount || p.deadlines) {
+    // Keep programs that have funding info or actual deadlines (useful data)
+    if (p.fundingAmount || hasActualDeadline(p.deadlines)) {
       return true
     }
     
@@ -202,7 +211,7 @@ export default function Dashboard() {
       total: programsToCount.length,
       qualified: userProfile ? programsToCount.length : 0,
       withFunding: programsToCount.filter(p => p.fundingAmount).length,
-      withDeadlines: programsToCount.filter(p => p.deadlines).length,
+      withDeadlines: programsToCount.filter(p => hasActualDeadline(p.deadlines)).length,
       uniqueSources: filteredSources.size,
     }
   }, [filteredAndSortedPrograms, userProfile])

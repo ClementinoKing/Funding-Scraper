@@ -700,9 +700,21 @@
       "sectors": "finance"
     },
     {
+      "name": "| Department of Small Business Development",
+      "summary": "National Entrepreneurship Strategy Publication",
+      "source": "https://www.dsbd.gov.za/",
+      "eligibility": "",
+      "fundingAmount": "",
+      "deadlines": "",
+      "contactEmail": "",
+      "contactPhone": "",
+      "applicationProcess": "to Apply  about Call for Application for Asset Assist International Day of Persons with Disability  about International Day of Persons with Disability National Entrepreneurship Strategy and Implementation Pla",
+      "sectors": ""
+    },
+    {
       "name": "Programmes | Department of Small Business Development",
       "summary": "CO-OPERATIVE DEVELOPMENT SUPPORT PROGRAMME:",
-      "source": "https://www.dsbd.gov.za/programmes",
+      "source": "https://www.dsbd.gov.za/index.php/programmes",
       "eligibility": "",
       "fundingAmount": "",
       "deadlines": "",
@@ -714,7 +726,7 @@
     {
       "name": "Business Infrastructure Support Programme | Department of Small Business Development",
       "summary": "Call for Applications: Business Infrastructure Support Programme (BISP)",
-      "source": "https://www.dsbd.gov.za/business-infrastructure-support-programme",
+      "source": "https://www.dsbd.gov.za/index.php/business-infrastructure-support-programme",
       "eligibility": "ying applicants to apply for support under the Business Infrastructure Support Programme (BISP). BISP aims to support MSMEs with Business enabling machinery, equipment, tools, technology, energy support and Infrastructure (newly built or refurbished) and enable market access for Micro, Small and Medium Enterprises (MSMEs). WHAT SUPPORT IS OFFERED? • Built Infrastructure – refurbished or new (e.g.",
       "fundingAmount": "R1; R23; R5; R10",
       "deadlines": "CLOSING DATE Applications must be submitted by (1st September to 19th September",
@@ -726,7 +738,7 @@
     {
       "name": "Small Enterprise Manufacturing Support Programme | Department of Small Business Development",
       "summary": "The purpose of the Small Enterprise Manufacturing Support Programme is:",
-      "source": "https://www.dsbd.gov.za/programme/small-enterprise-manufacturing-support-programme",
+      "source": "https://www.dsbd.gov.za/index.php/programme/small-enterprise-manufacturing-support-programme",
       "eligibility": "",
       "fundingAmount": "",
       "deadlines": "",
@@ -738,7 +750,7 @@
     {
       "name": "Co-Operatives Development Support Programme (CDSP) | Department of Small Business Development",
       "summary": "CO-OPERATIVE DEVELOPMENT SUPPORT PROGRAMME:",
-      "source": "https://www.dsbd.gov.za/programme/co-operatives-development-support-programme-cdsp",
+      "source": "https://www.dsbd.gov.za/index.php/programme/co-operatives-development-support-programme-cdsp",
       "eligibility": "ying activities‭. ‬The grant support is available for machinery‭, ‬equipment‭, ‬infrastructure‭, ‬commercial vehicles and business development support necessary to grow co-operative enterprises to ensure that the co-operative enterprise develop to be more sustainable and competitive‭.‬",
       "fundingAmount": "R2.5",
       "deadlines": "",
@@ -760,6 +772,107 @@
       "sectors": "enterprise, manufacturing"
     },
     {
+<<<<<<< HEAD
+      "name": "DBSA Role and Procurement Status for National Department of Health PSA Oxygen Plant Project",
+      "summary": "The DBSA Role and Procurement Status for National Department of Health PSA Oxygen Plant Project is a funding program that supports the development and funding of projects from conception to implementation.",
+      "source": "https://www.dbsa.org",
+      "eligibility": "",
+      "fundingAmount": "Not specified",
+      "deadlines": "Ongoing",
+      "contactEmail": "webmaster@dbsa.org",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": "Not specified",
+      "sectors": "finance, energy, technology, transport, education, healthcare, Health",
+      "programType": "other",
+      "targetAudience": "all"
+    },
+    {
+      "name": "Programme Development",
+      "summary": "The Programme Development funding program provides support for infrastructure development, digital transformation, and water management initiatives in South Africa.",
+      "source": "https://www.dbsa.org/solutions/programme-development",
+      "eligibility": "",
+      "fundingAmount": "No specific funding amounts mentioned.",
+      "deadlines": "Ongoing",
+      "contactEmail": "webmaster@dbsa.org",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": "No step-by-step application process mentioned.",
+      "sectors": "services, education, Infrastructure development, Digital transformation, Water management",
+      "programType": "other",
+      "targetAudience": "all"
+    },
+    {
+      "name": "Fund Management",
+      "summary": "The Fund Management program provides funding for infrastructure development in Africa, focusing on projects that promote inclusive and sustainable socio-economic growth.",
+      "source": "https://www.dbsa.org/solutions/fund-management",
+      "eligibility": "",
+      "fundingAmount": {
+        "R400 million": "Infrastructure Project Preparation Facility",
+        "R400 billion": "Infrastructure fund anticipated in the next coming years",
+        "$100bn": "Sustainable Development Investment Partnership"
+      },
+      "deadlines": "Ongoing",
+      "contactEmail": "webmaster@dbsa.org",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": "Not specified",
+      "sectors": "finance, energy, transport, Infrastructure development, Energy generation, Energy efficiency, Water, Sustainable transport, Waste management",
+      "programType": "grant",
+      "targetAudience": "all"
+    },
+    {
+      "name": "Green Fund",
+      "summary": "A Subordinated Debt Facility with an objective of Catalyzing Private Capital to Support Private Sector Projects that promote Low Emissions and Climate Resilience.",
+      "source": "https://www.dbsa.org/climate-finance-facility",
+      "eligibility": "Climate Impact Potential: The project must contribute to low emission and /or climate resilience infrastructure. For mitigation projects, the CFF can only finance projects that promote efforts to reduce or limit GHG emissions. Accordingly, projects would need to clearly demonstrate that net emissions GHG reductions would be realized over the project life.Development Impact: The project must demons",
+      "fundingAmount": "R2 billion; R150 million; R1.0 billion; R45 million; R250 million",
+      "deadlines": "",
+      "contactEmail": "cff@dbsa.org.For",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": "5. The CFF offers credit enhancement in the form of a first loss/subordinated debt funding and tenor extension (up to 15 years) by taking a blended finance approach; 1.0 billion; 5.9405299 28; To apply for funding, please download and complete the CFF Project Concept Note Template and send an electronic introduction of the project to cff@dbsa; fill market gaps and crowed-in private investment, targeting projects that are potentially viable, but cannot currently attract market-rate capital at scale without “credit enhancement”. It will focus on infrastructure projects that mitigate or adapt to climate change.The CFF is a structured finance platform that has an initial committed debt funding of R2 billion, co-funded equally by DBSA and Green Climate Fund (GCF). The CFF aims to catalyze private sector funding by co-funding alongside private sector financial institutions. The target of the CFF is to reach an overall portfolio leverage ratio of 1:5. The CFF offers credit enhancement in the form of a first loss/subordinated debt funding and tenor extension (up to 15 years) by taking a blended finance approach. Eligible CountriesThe CFF will focus on projects located in the Common Monetary Area, consisting of the following countries:Kingdom of eSwatiniKingdom of LesothoRepublic of NamibiaRepublic of South Africa FinancingProject size: The CFF funds infrastructure projects valued between R150 million and R1.0 billion.CFF Ticket size: The CFF funds up to 30% of the project costs, offering funding from R45 million (minimum) to R250 million (maximum) as a subordinated loan.Equity contribution: Minimum 20% equity contribution from project sponsors/investors.Senior debt*: 50% of the project costs in senior debt from private sector financial institutions.*Please note: To qualify for funding under the CFF the project needs to demonstrate that at a minimum 30% of the project costs is funded through senior debt by private sector financial institutions. Eligible Sectors img{ margin:0; } The CFF supports the implementation of climate mitigation and climate change adaptation projects. The below are the activities that the CFF can support under each category. A. Climate Mitigation:Renewable energy (solar, wind, small hydro etc). This includes Electricity generation and Heat productionEnergy Efficiency in new and existing facilities (e.g. Green buildings)Waste to energy (waste and wastewater)Low emission transport B. Climate Change Adaptation: Water preservation (This includes Water supply management, Water efficiency and Water treatment.)Climate resilient water infrastructure Key Selection Criteria Climate Impact Potential: The project must contribute to low emission and /or climate resilience infrastructure. For mitigation projects, the CFF can only finance projects that promote efforts to reduce or limit GHG emissions. Accordingly, projects would need to clearly demonstrate that net emissions GHG reductions would be realized over the project life.Development Impact: The project must demonstrate consistency with UN Sustainable Development Goals and meet climate, developmental, ESG and gender objectives as determined by the DBSA. The project should illustrate that it is designed to benefit local communities, with a particular focus on women and vulnerable groups, the environment and illustrate that there are no anticipated adverse social or environmental impacts.Private Sector Leverage: The project must demonstrate the ability to crowd-in commercial investment in the form of senior debt from private sector financial institutions. Increase Market Efficiency: The project must demonstrate that it has not been able to secure financing from the commercial market due to specific financing gaps and barriers and demonstrate that there is need for support from the CFF (CFF funding is additional). Market Transformation: The projects must contribute to market transformation and demonstrate that the project can materially and sustainably expand markets in terms of scale, improved private sector participation and confidence in climate mitigation and climate change adaptation investments.Paradigm Shift Potential: The project must show a paradigm shift potential; the degree to which the proposed can catalyse impact beyond a one-off project or programme investment.Country ownership: The project must align to the specific country’s priorities, climate strategies and Nationally Determined Contributions (NDCs).Project Stage: The project must be technically and economically viable, be ready for implementation and demonstrate an interest from private sector financial institutions to fund it. Project sponsors should provide a detailed PIM (project information memorandum) and financial model on the project. EnquiriesTo apply for funding, please download and complete the CFF Project Concept Note Template and send an electronic introduction of the project to cff@dbsa.org.For more information, please see the CFF Overview Presentation. DisclaimerPlease note that applications will be required to demonstrate commercial viability and will be assessed through a competitive process",
+      "sectors": "finance, energy, transport"
+    },
+    {
+      "name": "The Embedded Generation Investment Programme",
+      "summary": "The Embedded Generation Investment Programme (EGIP) supports the development and upscaling of solar PV and wind RE Embedded Generation Projects developed by independent power producers (IPPs) operating in South Africa.",
+      "source": "https://www.dbsa.org/embedded-generation-investment-programme",
+      "eligibility": "",
+      "fundingAmount": "US$200 million",
+      "deadlines": "Ongoing",
+      "contactEmail": "EGIP@dbsa.org",
+      "contactPhone": "",
+      "applicationProcess": {
+        "steps": [
+          "Read the RFP",
+          "Fill in the registration form",
+          "Upload files using the application file upload link"
+        ]
+      },
+      "sectors": "energy, Renewable Energy",
+      "programType": "grant",
+      "targetAudience": "startups"
+    },
+    {
+      "name": "Green Fund",
+      "summary": "The Green Fund provides funding for projects that support a just transition to a low carbon economy, with a focus on innovative and high-impact green programs and projects.",
+      "source": "https://www.dbsa.org/solutions/climate-financing/green-fund",
+      "eligibility": "The Green Fund, which supports projects in South Africa can provide funding of:",
+      "fundingAmount": {
+        "projectPreparationSupport": "Up to R25m",
+        "investmentFunding": "Up to R70m"
+      },
+      "deadlines": "Ongoing",
+      "contactEmail": "greenfund@dbsa.org",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": [
+        "Send an electronic introduction of the project to greenfund@dbsa.org",
+        "Include incorporation certificate, comprehensive business plan, latest audited annual financial statements, and financial projections for at least three years"
+      ],
+      "sectors": "energy, transport, enterprise, services, finance, tech, Green building technologies, Hydrogen fuel cells, Transport sector, Water sector, Waste management, Renewable energy sector, Youth development",
+      "programType": "grant",
+      "targetAudience": "all"
+    },
+    {
+=======
+>>>>>>> dev-happy
       "name": "Local Government Support",
       "summary": "The local government sector is an investment area where the DBSA holds extensive expertise and we work with all three sectors of local government i.e. metros, secondary and under-resourced municipalities. ..",
       "source": "https://www.dbsa.org/sectors/local-government-support",
@@ -796,6 +909,18 @@
       "sectors": ""
     },
     {
+<<<<<<< HEAD
+      "name": "The SADC Water Fund",
+      "summary": "A Collaborative Approach to Water Security in Southern Africa",
+      "source": "https://www.dbsa.org/solutions/sadc-water-fund",
+      "eligibility": "Who may apply: SADC member state public institutions aiming to promote economic development, regional integration, and poverty alleviation within the region. Eligible projects must: Be poverty-focused and pro-developmentFit into national or regional water strategiesAlign with IWRM and Nexus principlesComplete environmental and social assessmentsProvide a minimum 10% contribution (excluding taxes)",
+      "fundingAmount": "45 million",
+      "deadlines": "",
+      "contactEmail": "SADCWaterFund@dbsa.orgRequired",
+      "contactPhone": "+27 11 313 3911",
+      "applicationProcess": "2. The DBSA serves as project executing agency through a dedicated Project Implementing Unit (PIU); 5.9405299 28; Application ProcessSubmit to: SADCWaterFund@dbsa; Complete environmental and social assessmentsProvide a minimum 10% contribution (excluding taxes) from project owners Objectives The Fund prioritises projects that deliver poverty-focused and transboundary benefits to: Strengthen regional integration Align with Integrated Water Resources Management (IWRM) and the Nexus approach Are implementation-ready and included in national or regional masterplans. Consider environmental and social impacts Application ProcessSubmit to: SADCWaterFund@dbsa.orgRequired documents:Application letterProject detailsContact details of the organisationProject descriptionProject objectiveGeographical coverageCurrent project stageProject stage (for which the SADC Water Fund support is required)Development impactTotal cost & financing planFull background: technical details, financial position, institutional setup of the proposed project, environmental impacts and project benefits Selection process:Compliance checkEarly Assessment Report (EAR)Technical & financial due diligenceAppraisal Report (AR) for review of the Project Management BoardEvaluation criteria:Project sponsor capacityTechnical quality and cost efficiencyFinancial sustainabilityRegional integrationAlignment with IWRM & Nexus principles Kazungula Water Supply Project (Zambia) - Border town project at the crossroads of Zambia, Botswana, Zimbabwe, and Namibia. A water treatment and reticulation networkThe project is strategically located as it follows the construction of a new cross-border bridge over the Zambezi River. This enhances connectivity between Zambia and Botswana, thereby facilitating a regional trade corridorBeneficiaries: 12,500 residents + transient populationsStatus: Near completion, commissioned in May 2025 Lomahasha–Namaacha Cross-Border Project (Eswatini & Mozambique) Addresses the water supply challenges faced by the mountainous border towns Lomahasha (Eswatini) and Namaacha (Mozambique)Rising mains, reservoirs, distribution rehabilitationStatus: 25% complete; started October 2024, due May 2026 Ramotswa Transboundary Aquifer Project (Botswana & South Africa) Addresses the pressing challenge of groundwater contamination in the cross border aquiferTackling groundwater contaminationRequires additional studies for sustainable designStudy financed via SADC PPDF Contact DBSA -25.9405299 28.1353045 You must have JavaScript enabled to use this form",
+      "sectors": "construction"
+=======
       "name": "Welcome to GEP",
       "summary": "The Gauteng Enterprise Propeller (GEP) promotes, fosters and develops small enterprises in Gauteng thereby implementing the policy of the Gauteng Provincial Government for small enterprise development.",
       "source": "https://www.gep.co.za/",
@@ -806,6 +931,7 @@
       "contactPhone": "",
       "applicationProcess": "",
       "sectors": "enterprise"
+>>>>>>> dev-happy
     },
     {
       "name": "Financial Support",
@@ -878,30 +1004,6 @@
       "contactPhone": "",
       "applicationProcess": "",
       "sectors": "enterprise, finance, services"
-    },
-    {
-      "name": "Business Loan",
-      "summary": "LEDA",
-      "source": "https://www.lieda.co.za/index.php/business-loan/",
-      "eligibility": "ICATION CRITERIA FOR BUSINESS LOAN (LONG-TERM LOAN) |",
-      "fundingAmount": "",
-      "deadlines": "",
-      "contactEmail": "",
-      "contactPhone": "",
-      "applicationProcess": "",
-      "sectors": ""
-    },
-    {
-      "name": "Procurement Loan",
-      "summary": "LEDA",
-      "source": "https://www.lieda.co.za/index.php/procurement-loan/",
-      "eligibility": "ICATION CRITERIA FOR PROCUREMENT LOAN/ORDER (ONE MONTH) |",
-      "fundingAmount": "",
-      "deadlines": "",
-      "contactEmail": "",
-      "contactPhone": "",
-      "applicationProcess": "",
-      "sectors": ""
     },
     {
       "name": "Home - MEGA",

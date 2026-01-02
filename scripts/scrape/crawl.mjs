@@ -1,4 +1,5 @@
 import { normalizeText, cleanText, extractContactInfo, extractApplicationProcess, extractSectors, isValidProgram, filterMarketingContent, extractCleanSummary } from './utils.mjs'
+import { improveSummaryWithAI, categorizeWithAI, extractStructuredDataWithAI, improveEligibilityWithAI } from './ai.mjs'
 
 const DEFAULT_LINK_KEYWORDS = /(funding|programme|program|apply|instrument|grant|loan|tender|opportunit|finance|support)/i
 const DEFAULT_MAX_LINKS = 12
@@ -176,6 +177,18 @@ async function extractFromDetail(page, url, siteConfig = {}) {
     // Fallback to body if no main content found
     if (!mainContent) {
       mainContent = document.body
+    }
+    
+    // Safety check - ensure mainContent exists before cloning
+    if (!mainContent) {
+      return {
+        title: document.title || '',
+        firstParagraph: '',
+        html: '',
+        eligibilitySection: '',
+        overviewSection: '',
+        subprogramLinks: []
+      }
     }
     
     // Clone to avoid modifying original
@@ -373,7 +386,7 @@ async function extractFromDetail(page, url, siteConfig = {}) {
   // Clean name to remove HTML artifacts
   const cleanName = cleanText(title)
 
-  return {
+  const extracted = {
     name: firstNonEmpty(cleanName),
     summary: firstNonEmpty(summary),
     source: url,
@@ -386,6 +399,109 @@ async function extractFromDetail(page, url, siteConfig = {}) {
     sectors,
     subprogramLinks: subprogramLinks || [],
   }
+
+  // Enhance with AI if enabled
+  if (siteConfig.useAI) {
+    try {
+      if (siteConfig.aiMode === 'full' || siteConfig.aiMode === 'extract') {
+        // Full AI extraction mode - extract structured data from raw HTML
+        const aiExtracted = await extractStructuredDataWithAI(raw, url, cleanName)
+        
+        if (aiExtracted) {
+          // Use AI-extracted data, but merge with rule-based extraction as fallback
+          if (aiExtracted.overview && aiExtracted.overview.length > 30) {
+            extracted.summary = aiExtracted.overview
+          }
+          
+          if (aiExtracted.eligibility && aiExtracted.eligibility.length > 30) {
+            extracted.eligibility = aiExtracted.eligibility
+          }
+          
+          // Merge other fields
+          if (aiExtracted.fundingAmount) {
+            extracted.fundingAmount = aiExtracted.fundingAmount || extracted.fundingAmount
+          }
+          
+          if (aiExtracted.deadlines) {
+            extracted.deadlines = aiExtracted.deadlines || extracted.deadlines
+          }
+          
+          if (aiExtracted.applicationProcess) {
+            extracted.applicationProcess = aiExtracted.applicationProcess || extracted.applicationProcess
+          }
+          
+          if (aiExtracted.contactEmail) {
+            extracted.contactEmail = aiExtracted.contactEmail || extracted.contactEmail
+          }
+          
+          if (aiExtracted.contactPhone) {
+            extracted.contactPhone = aiExtracted.contactPhone || extracted.contactPhone
+          }
+          
+          // Add categorization
+          if (aiExtracted.sectors && aiExtracted.sectors.length > 0) {
+            const existingSectors = extracted.sectors ? extracted.sectors.split(',').map(s => s.trim()) : []
+            const allSectors = [...new Set([...existingSectors, ...aiExtracted.sectors])]
+            extracted.sectors = allSectors.join(', ')
+          }
+          
+          if (aiExtracted.programType) {
+            extracted.programType = aiExtracted.programType
+          }
+          
+          if (aiExtracted.targetAudience) {
+            extracted.targetAudience = aiExtracted.targetAudience
+          }
+        }
+      } else if (siteConfig.aiMode === 'enhance') {
+        // Enhancement mode - improve existing extracted data
+        // Improve summary with AI
+        if (extracted.summary && extracted.summary.length >= 20) {
+          const improvedSummary = await improveSummaryWithAI(
+            extracted.summary,
+            extracted.eligibility,
+            raw
+          )
+          if (improvedSummary && improvedSummary.length > 0) {
+            extracted.summary = improvedSummary
+          }
+        }
+
+        // Improve eligibility with AI
+        if (extracted.eligibility && extracted.eligibility.length >= 30) {
+          const improvedEligibility = await improveEligibilityWithAI(
+            extracted.eligibility,
+            raw
+          )
+          if (improvedEligibility && improvedEligibility.length > 0) {
+            extracted.eligibility = improvedEligibility
+          }
+        }
+
+        // Categorize program with AI
+        const categories = await categorizeWithAI(extracted)
+        if (categories.sectors && categories.sectors.length > 0) {
+          const existingSectors = extracted.sectors ? extracted.sectors.split(',').map(s => s.trim()) : []
+          const allSectors = [...new Set([...existingSectors, ...categories.sectors])]
+          extracted.sectors = allSectors.join(', ')
+        } else if (!extracted.sectors && categories.sectors.length > 0) {
+          extracted.sectors = categories.sectors.join(', ')
+        }
+        
+        if (categories.programType && categories.programType !== 'other') {
+          extracted.programType = categories.programType
+        }
+        if (categories.targetAudience && categories.targetAudience !== 'all') {
+          extracted.targetAudience = categories.targetAudience
+        }
+      }
+    } catch (error) {
+      console.warn(`[AI] Failed to enhance program ${url}:`, error.message)
+      // Continue with rule-based extraction - graceful degradation
+    }
+  }
+
+  return extracted
 }
 
 export async function crawlAndExtract(browser, startUrl, siteConfig = {}) {
