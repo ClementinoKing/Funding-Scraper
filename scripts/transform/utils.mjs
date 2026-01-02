@@ -64,7 +64,7 @@ export async function fetchPageText(url) {
   // Collapse again after removals
   text = text.replace(/\s+/g, " ").trim();
 
-  return text.slice(0, 25000); // Final truncation for token safety, recommended is 12k.
+  return text; // Final truncation for token safety, recommended is 12k.
 }
 
 
@@ -115,6 +115,5 @@ export async function fetchPageTextWithBrowser(url) {
 
   return text
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 25000);
+    .trim();
 }

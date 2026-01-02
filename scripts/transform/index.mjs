@@ -71,45 +71,4 @@ async function transform () {
     }
 }
 
-async function transformAndUpdate () {
-    let { data: programs, error } = await supabase
-        .from("programs")
-        .select("*")
-        .ilike('eligibility', '%not specified%');
-
-    if (error) {
-        console.error("Error fetching data from Supabase:", error);
-        return;
-    }
-
-    for(const program of programs) {
-        let htmlContent = "No content provided.";
-
-        try {
-            htmlContent = await fetchPageText(program.source);
-
-            if (looksLikeLoaderPage(htmlContent)) {
-                console.log("Escalating to headless browser:", program.source);
-                htmlContent = await fetchPageTextWithBrowser(program.source);
-            }
-        } catch (error) {
-            console.error(`Error fetching page text for URL ${program.source}:`, error);
-        }
-
-        const response = await fetchAiResponse(program, openai_key, ai_provider, htmlContent);
-        const ai_response = JSON.parse(response);
-        ai_response['staging_id'] = program.id;
-        ai_response['page_fetched'] = htmlContent !== "No website content provided.";
-
-        console.log(ai_response)
-
-        await supabase
-            .from("programs")
-            .update(ai_response)
-            .eq('id', program.id)
-            .select();
-    }
-}
-
 transform();
-// transformAndUpdate();
