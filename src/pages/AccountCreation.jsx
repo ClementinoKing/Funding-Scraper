@@ -1649,12 +1649,6 @@ export default function AccountCreation() {
                               <p className="mt-2 text-sm"><span className="text-muted-foreground">Explanation:</span> {fundingCategory.explanation}</p>
                             )}
                           </div>
-                        ) : formData.purposeOfFunding.trim().length >= 20 ? (
-                          <div className="mt-3 pt-3 border-t">
-                            <p className="text-muted-foreground italic text-sm">
-                              Funding category will be determined automatically when you submit.
-                            </p>
-                          </div>
                         ) : null}
                       </div>
                     </div>
