@@ -156,6 +156,7 @@ export default function AccountCreation() {
     // Step 4: Funding Requirements
     fundingAmountNeeded: '',
     timeline: '',
+    useOfFunds: '',
     purposeOfFunding: '',
     previousFundingHistory: false,
     previousFundingDetails: '',
@@ -177,6 +178,16 @@ export default function AccountCreation() {
   const geocoderRef = useRef(null)
   const autocompleteRef = useRef(null)
   const [addressError, setAddressError] = useState('')
+  const [funding_categories, setFundingCategories] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data} = await supabase
+            .from("funding_categories")
+            .select("category");
+      setFundingCategories(data.map(fc => fc.category));
+    })()
+  },[])
 
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -522,13 +533,14 @@ export default function AccountCreation() {
     }
 
     if (step === 4) {
+      if (!formData.useOfFunds) newErrors.useOfFunds = 'Please specify what you will use the funding for';
       if (!formData.fundingAmountNeeded) newErrors.fundingAmountNeeded = 'Funding amount needed is required'
       if (!formData.timeline) newErrors.timeline = 'Timeline is required'
-      if (!formData.purposeOfFunding.trim()) {
+
+      if (formData.useOfFunds === 'Other' && !formData.purposeOfFunding.trim()) {
         newErrors.purposeOfFunding = 'Purpose of funding is required'
-      } else if (formData.purposeOfFunding.trim().length < 20) {
-        newErrors.purposeOfFunding = 'Please provide more details (at least 20 characters)'
       }
+
       if (formData.fundingTypes.length === 0) {
         newErrors.fundingTypes = 'Select at least one funding type'
       }
@@ -639,9 +651,10 @@ export default function AccountCreation() {
         previous_funding_details: formData.previousFundingDetails || null,
         funding_types: formData.fundingTypes.length > 0 ? formData.fundingTypes : [],
         profile_completed: true,
-        funding_category: fundingCategory.primary_category || null,
+        funding_category: formData.useOfFunds !== 'Other' ? formData.useOfFunds : fundingCategory.primary_category || formData.useOfFunds,
         funding_category_confidence: fundingCategory.confidence || null,
         funding_category_explanation: fundingCategory.explanation || null,
+        use_of_funds: formData.useOfFunds || null,
       }
 
       // Check if profile already exists for this user
@@ -1506,7 +1519,28 @@ export default function AccountCreation() {
                       )}
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="purposeOfFunding">Purpose of Funding *</FieldLabel>
+                      <FieldLabel htmlFor="useOfFunds">Use of Funds *</FieldLabel>
+                      <Select
+                        value={formData.useOfFunds}
+                        onValueChange={(value) => updateFormData('useOfFunds', value)}
+                      >
+                        <SelectTrigger className={errors.useOfFunds ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Select use of funds" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {funding_categories?.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {errors.useOfFunds && (
+                        <p className="text-sm text-red-500 mt-1">{errors.useOfFunds}</p>
+                      )}
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="purposeOfFunding">Tell us what you'll use the funding for (1-3 sentences)</FieldLabel>
                       <textarea
                         id="purposeOfFunding"
                         value={formData.purposeOfFunding}
@@ -1514,9 +1548,8 @@ export default function AccountCreation() {
                         placeholder="Describe what you need the funding for..."
                         className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                         rows={5}
-                        required
+                        required={formData.useOfFunds === 'Other'}
                       />
-                      <FieldDescription>Please provide at least 20 characters</FieldDescription>
                       {errors.purposeOfFunding && (
                         <p className="text-sm text-red-500 mt-1">{errors.purposeOfFunding}</p>
                       )}
@@ -1631,7 +1664,8 @@ export default function AccountCreation() {
                         <p><span className="text-muted-foreground">Amount Needed:</span> {REVENUE_RANGES.find(r => r.value === formData.fundingAmountNeeded)?.label}</p>
                         <p><span className="text-muted-foreground">Timeline:</span> {TIMELINE_OPTIONS.find(t => t.value === formData.timeline)?.label}</p>
                         <p><span className="text-muted-foreground">Funding Types:</span> {formData.fundingTypes.join(', ') || 'None'}</p>
-                        <p><span className="text-muted-foreground">Purpose:</span> {formData.purposeOfFunding}</p>
+                        <p><span className="text-muted-foreground">Use of Funds:</span> {formData.useOfFunds}</p>
+                        {formData.purposeOfFunding && <p><span className="text-muted-foreground">Purpose:</span> {formData.purposeOfFunding}</p>}
                         {fundingCategoryLoading ? (
                           <div className="mt-3 pt-3 border-t">
                             <p className="text-muted-foreground italic">
