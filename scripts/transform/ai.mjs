@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { supabase } from "./config.mjs";
 
 export async function fetchAiResponse(
   payload,
@@ -6,6 +7,11 @@ export async function fetchAiResponse(
   provider = "openai",
   pageText = ""
 ) {
+  let { data: funding_categories } = await supabase
+        .from("funding_categories")
+        .select("category");
+  const categories = funding_categories.map(fc => fc.category).join("; \n");
+
   const systemPrompt = `
 You are a deterministic data-processing and normalization engine.
 
@@ -37,19 +43,7 @@ KEYPOINTS:
 - Make sure you capture the deadline if it has been provided anywhere in the content.
 
 **Available Funding Categories:**
-1.  Seed / Startup Capital
-2.  Product Development
-3.  Inventory & Working Capital
-4.  Marketing & Customer Acquisition
-5.  Equipment & Machinery
-6.  Commercial Real Estate
-7.  Business Expansion / Growth Capital
-8.  Debt Refinancing / Restructuring
-9.  Acquisitions
-10. Bridge / Emergency Funding
-11. R&D / Innovation
-12. Franchise Financing
-13. Green / Sustainable Projects
+${categories}
 
 ELIGIBILITY (CRITICAL):
 - Capturing accurate eligibility criteria is a must no matter what, no blanks needed - write something based on the summary or the website content.
