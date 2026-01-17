@@ -1,56 +1,60 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GoogleMap, useLoadScript, Marker, Autocomplete } from '@react-google-maps/api'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { getToken, setToken, setUser, getCurrentSession } from '@/lib/auth'
+import { getCurrentSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
-import { CheckCircle2, ArrowRight, ArrowLeft, User, Building2, TrendingUp, DollarSign, FileCheck, Shield } from 'lucide-react'
-import { getFundingCategory } from '@/lib/ai';
-
-import { CalendarIcon } from "lucide-react";
+import { cn } from '@/lib/utils'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from '@/components/ui/calendar';
-import { format } from "date-fns";
+  Building2,
+  Store,
+  Lightbulb,
+  FileText,
+  CheckCircle2,
+  ArrowLeft,
+  ArrowRight,
+  Search,
+  Info,
+  Target,
+  TrendingUp,
+  Clock,
+  Zap,
+  Star,
+  X,
+  MapPin,
+  DollarSign,
+  Users,
+  Shield,
+  Wallet,
+  CreditCard,
+  Smartphone,
+  Banknote,
+  Receipt,
+  Sparkles,
+} from 'lucide-react'
 
-const libraries = ['places']
-const mapContainerStyle = {
-  width: '100%',
-  height: '300px',
-}
-const defaultCenter = {
-  lat: -25.7479,
-  lng: 28.2293,
-}
-const defaultZoom = 10
+// Constants
+const BUSINESS_TYPES = [
+  { id: 'registered', label: 'Registered Company', description: 'Formally registered with CIPC', icon: Building2, color: 'text-purple-600' },
+  { id: 'not-registered', label: 'Not Registered', description: 'Operating business, not formally registered', icon: Store, color: 'text-blue-600' },
+  { id: 'spaza', label: 'Spaza Shop', description: 'Informal retail business', icon: Store, color: 'text-yellow-600' },
+  { id: 'idea', label: 'Business Idea', description: 'Planning to start a business', icon: Lightbulb, color: 'text-orange-600' },
+]
 
-const STEPS = [
-  { id: 1, title: 'Personal & Owner Info', description: 'Tell us about yourself' },
-  { id: 2, title: 'Business Details', description: 'Business information' },
-  { id: 3, title: 'Business Metrics', description: 'Financial and operational metrics' },
-  { id: 4, title: 'Funding Requirements', description: 'What are you looking for?' },
-  { id: 5, title: 'Review', description: 'Review and complete' },
+const PROVINCES = [
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
+  'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
 ]
 
 const INDUSTRIES = [
-  'Agriculture & Forestry',
+  'Agriculture & Agro-processing',
   'Manufacturing',
   'Technology & IT',
   'Tourism & Hospitality',
@@ -69,699 +73,280 @@ const INDUSTRIES = [
   'Other',
 ]
 
-const FUNDING_TYPES = [
-  'Grants',
-  'Loans',
-  'Equity Investment',
-  'Vouchers',
-  'Subsidies',
-  'Mentorship Programs',
-]
-
-const REVENUE_RANGES = [
-  { value: 'under-100k', label: 'Under R100,000' },
-  { value: '100k-500k', label: 'R100,000 - R500,000' },
-  { value: '500k-1m', label: 'R500,000 - R1 Million' },
-  { value: '1m-5m', label: 'R1 Million - R5 Million' },
-  { value: '5m-10m', label: 'R5 Million - R10 Million' },
-  { value: '10m-50m', label: 'R10 Million - R50 Million' },
-  { value: 'over-50m', label: 'Over R50 Million' },
-]
-
-const EMPLOYEE_RANGES = [
-  { value: '1-5', label: '1-5 employees' },
-  { value: '6-10', label: '6-10 employees' },
-  { value: '11-20', label: '11-20 employees' },
-  { value: '21-50', label: '21-50 employees' },
-  { value: '51-100', label: '51-100 employees' },
-  { value: '101-250', label: '101-250 employees' },
-  { value: 'over-250', label: 'Over 250 employees' },
+const FUNDING_PURPOSES = [
+  'Working capital',
+  'Equipment / Assets (vehicles, machinery, IT hardware)',
+  'Technology / Digitisation (POS, accounting, ERP, e-commerce, cybersecurity)',
+  'Property / Premises',
+  'Marketing & Sales',
+  'Research & Development',
+  'Debt consolidation',
+  'Expansion / Growth',
 ]
 
 const TIMELINE_OPTIONS = [
-  { value: 'immediately', label: 'Immediately (within 1 month)' },
-  { value: 'short-term', label: 'Short-term (1-3 months)' },
-  { value: 'medium-term', label: 'Medium-term (3-6 months)' },
-  { value: 'long-term', label: 'Long-term (6-12 months)' },
-  { value: 'planning', label: 'Planning phase (12+ months)' },
+  { value: 'immediately', label: 'Immediately', description: 'Need funds ASAP (days)' },
+  { value: '1-2-weeks', label: '1-2 weeks', description: 'Can wait a short while' },
+  { value: 'within-month', label: 'Within a month', description: 'Planning ahead' },
+  { value: '2-3-months', label: '2-3 months', description: 'Future planning' },
+  { value: '3-plus-months', label: '3+ months', description: 'Longer lead items (grants, capex, equity)' },
+  { value: 'flexible', label: "I'm flexible", description: 'Show me best options across timelines' },
 ]
 
-const GENDERS = ['Male', 'Female', 'Other', 'Prefer not to say']
-const RACES = ['Black', 'Coloured', 'Indian/Asian', 'White', 'Other', 'Prefer not to say']
-const DISABILITY_STATUSES = ['Yes', 'No', 'Prefer not to say']
-const BEE_LEVELS = ['Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5', 'Level 6', 'Level 7', 'Level 8', 'Not Certified']
+const STEPS = [
+  { number: 1, title: 'Business Type', shortTitle: 'Type' },
+  { number: 2, title: 'Business Details', shortTitle: 'Details' },
+  { number: 3, title: 'Funding Needs', shortTitle: 'Funding' },
+  { number: 4, title: 'Assessment', shortTitle: 'Assessment' },
+]
 
-// Helper function to normalize values
-const normalizeValue = (value, useSpaceSlash = false) => {
-  if (!value) return ''
-  let normalized = value.toLowerCase()
-  if (useSpaceSlash) {
-    normalized = normalized.replace(/\s+\//g, '-')
-  }
-  return normalized.replace(/\s+/g, '-')
+function StepTimeline({ currentStep }) {
+  return (
+    <div className="w-full max-w-4xl mx-auto mb-12">
+      <div className="flex items-center justify-between relative px-4 sm:px-8">
+        {/* Connection lines */}
+        <div className="absolute top-6 left-8 right-8 h-[2px] bg-border -z-10">
+          <div
+            className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500 ease-out"
+            style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+          />
+        </div>
+
+        {STEPS.map((step, index) => {
+          const isCompleted = step.number < currentStep
+          const isActive = step.number === currentStep
+          const isPending = step.number > currentStep
+
+          return (
+            <div key={step.number} className="flex flex-col items-center flex-1 relative z-10">
+              {/* Step Circle */}
+              <div className="relative">
+                <div
+                  className={cn(
+                    "w-14 h-14 rounded-full flex items-center justify-center font-semibold transition-all duration-300",
+                    (isCompleted || isActive) && "bg-white border-4 border-blue-400 dark:border-blue-500 shadow-md",
+                    isPending && "bg-gray-100 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700"
+                  )}
+                >
+                  {isCompleted ? (
+                    <CheckCircle2 className="w-7 h-7 text-purple-600 dark:text-purple-400" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-lg font-semibold",
+                        (isCompleted || isActive) && "text-purple-600 dark:text-purple-400",
+                        isPending && "text-gray-500 dark:text-gray-400"
+                      )}
+                    >
+                      {step.number}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Step Labels */}
+              <div className="mt-3 text-center max-w-[140px]">
+                <div
+                  className={cn(
+                    "text-sm font-semibold transition-colors duration-300",
+                    (isCompleted || isActive) && "text-purple-600 dark:text-purple-400",
+                    isPending && "text-gray-600 dark:text-gray-400"
+                  )}
+                >
+                  {step.title}
+                </div>
+                <div
+                  className={cn(
+                    "text-xs mt-1 transition-colors duration-300",
+                    (isCompleted || isActive) && "text-gray-600 dark:text-gray-400",
+                    isPending && "text-gray-500 dark:text-gray-500"
+                  )}
+                >
+                  Step {step.number}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 export default function AccountCreation() {
+  const [loading, setLoading] = useState(true)
   const [currentStep, setCurrentStep] = useState(1)
-  const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    // Step 1: Personal & Owner Information
-    ownerFullName: '',
-    idNumber: '',
-    dob: '',
-    phone: '',
-    email: '',
-    gender: '',
-    race: '',
-    disabilityStatus: '',
-    
-    // Step 2: Business Details
-    businessName: '',
-    companyRegistrationNumber: '',
-    businessType: '',
-    industry: '',
-    businessRegistrationDate: '',
-    yearsInBusiness: '',
-    physicalAddress: '',
-    postalCode: '',
-    website: '',
-    taxNumber: '',
-    vatNumber: '',
-    
-    // Step 3: Business Metrics
-    annualRevenue: '',
-    numberOfEmployees: '',
-    beeLevel: '',
-    
-    // Step 4: Funding Requirements
-    fundingAmountNeeded: '',
-    timeline: '',
-    purposeOfFunding: '',
-    previousFundingHistory: false,
-    previousFundingDetails: '',
-    fundingTypes: [],
-  })
-  const [errors, setErrors] = useState({})
-  const [error, setError] = useState('')
-  const [registrationData, setRegistrationData] = useState(null)
+  const [currentAssessmentSection, setCurrentAssessmentSection] = useState(1)
+  const [completedAssessmentSections, setCompletedAssessmentSections] = useState([])
   const navigate = useNavigate()
 
-  const [fundingCategory, setFundingCategory] = useState(
-    { primary_category: '', confidence: 0, explanation: '' }
-  );
-  const [fundingCategoryLoading, setFundingCategoryLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState(defaultCenter)
-  const [mapZoom, setMapZoom] = useState(defaultZoom)
-  const [isNavigating, setIsNavigating] = useState(false)
-  const [isGeocoding, setIsGeocoding] = useState(false)
-  const geocoderRef = useRef(null)
-  const autocompleteRef = useRef(null)
-  const [addressError, setAddressError] = useState('')
-
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries,
+  // Form data state
+  const [formData, setFormData] = useState({
+    // Step 1
+    businessType: '',
+    
+    // Step 2
+    companyRegistrationNumber: '',
+    businessName: '',
+    province: '',
+    postalCode: '',
+    differentTradingAddress: false,
+    industry: '',
+    subIndustry: [],
+    whoDoYouSellTo: '',
+    isRegulated: false,
+    regulatedSectors: [],
+    doYouExport: false,
+    seasonality: '',
+    secondaryIndustries: [],
+    
+    // Step 3
+    fundingAmount: 100000,
+    fundingTimeline: '',
+    fundingPurposes: [],
+    fundingDetails: '',
+    
+    // Step 4 - Assessment
+    // Section 1: Business & Trading
+    mainCustomers: '',
+    monthlyCustomers: '',
+    revenueFromBiggestCustomer: '',
+    customerPaymentSpeed: '',
+    averageDaysToGetPaid: '',
+    paymentMethods: [],
+    posAcquirers: [],
+    monthlyCardTurnover: '',
+    issueInvoices: '',
+    percentFromLargestCustomer: '',
+    typicalPaymentTerms: '',
+    walletProviders: [],
+    
+    // Section 2: Financial & Banking
+    moneyGoesTo: '',
+    bank: '',
+    accountDuration: '',
+    monthlyIncomeRange: '',
+    exactMonthlyIncome: '',
+    trackFinances: '',
+    
+    // Section 3: Team & Compliance
+    numberOfEmployees: '',
+    businessStage: '',
+    ownerBackground: [],
+    demographics: [],
+    sarsStatus: '',
+    vatRegistered: '',
+    bbbeeLevel: '',
+    financialDocuments: [],
+    
+    // Section 4: Preferences & Location
+    repaymentFrequency: '',
+    repaymentDuration: '',
+    openToEquity: '',
+    canProvideCollateral: '',
+    cityTown: '',
+    impactFocus: '',
   })
 
-  const geocodeAddress = useCallback(async (address) => {
-    if (!address || !isLoaded || !window.google) return
-
-    setIsGeocoding(true)
-    setAddressError('')
-
-    if (!geocoderRef.current) {
-      geocoderRef.current = new window.google.maps.Geocoder()
-    }
-
-    try {
-      // Enhanced geocoding with region biasing for South Africa
-      const results = await new Promise((resolve, reject) => {
-        geocoderRef.current.geocode(
-          { 
-            address: address,
-            region: 'ZA', // Bias to South Africa
-            componentRestrictions: { country: 'ZA' } // Restrict to South Africa
-          }, 
-          (results, status) => {
-            if (status === 'OK') {
-              resolve(results)
-            } else if (status === 'ZERO_RESULTS') {
-              // Try without country restriction if no results
-              geocoderRef.current.geocode(
-                { 
-                  address: address,
-                  region: 'ZA'
-                }, 
-                (results, status) => {
-                  if (status === 'OK') {
-                    resolve(results)
-                  } else {
-                    reject(new Error(`Geocoding failed: ${status}`))
-                  }
-                }
-              )
-            } else {
-              reject(new Error(`Geocoding failed: ${status}`))
-            }
-          }
-        )
-      })
-
-      if (results && results[0]) {
-        const location = results[0].geometry.location
-        const viewport = results[0].geometry.viewport
-        
-        setMapCenter({
-          lat: location.lat(),
-          lng: location.lng(),
-        })
-        
-        // Adjust zoom based on location type
-        if (viewport) {
-          const bounds = new window.google.maps.LatLngBounds(viewport)
-          const ne = bounds.getNorthEast()
-          const sw = bounds.getSouthWest()
-          const latDiff = ne.lat() - sw.lat()
-          const lngDiff = ne.lng() - sw.lng()
-          
-          // Calculate appropriate zoom level
-          if (latDiff < 0.01 || lngDiff < 0.01) {
-            setMapZoom(17) // Very specific location (building level)
-          } else if (latDiff < 0.05 || lngDiff < 0.05) {
-            setMapZoom(15) // Neighborhood level
-          } else {
-            setMapZoom(13) // City level
-          }
-        } else {
-          setMapZoom(15) // Default zoom
-        }
-        
-        setAddressError('')
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error)
-      setAddressError('Could not find location. Please check the address or try a more specific location.')
-    } finally {
-      setIsGeocoding(false)
-    }
-  }, [isLoaded])
-
-  // Handle place selection from autocomplete
-  const onPlaceChanged = useCallback(() => {
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace()
-      
-      if (place.geometry) {
-        const location = place.geometry.location
-        const viewport = place.geometry.viewport
-        
-        // Update form data with formatted address
-        const formattedAddress = place.formatted_address || place.name
-        updateFormData('physicalAddress', formattedAddress)
-        
-        setMapCenter({
-          lat: location.lat(),
-          lng: location.lng(),
-        })
-        
-        // Adjust zoom based on location type
-        if (viewport) {
-          const bounds = new window.google.maps.LatLngBounds(viewport)
-          const ne = bounds.getNorthEast()
-          const sw = bounds.getSouthWest()
-          const latDiff = ne.lat() - sw.lat()
-          const lngDiff = ne.lng() - sw.lng()
-          
-          if (latDiff < 0.01 || lngDiff < 0.01) {
-            setMapZoom(17)
-          } else if (latDiff < 0.05 || lngDiff < 0.05) {
-            setMapZoom(15)
-          } else {
-            setMapZoom(13)
-          }
-        } else {
-          setMapZoom(15)
-        }
-        
-        setAddressError('')
-      } else {
-        // If no geometry, try geocoding the formatted address
-        if (place.formatted_address) {
-          geocodeAddress(place.formatted_address)
-        }
-      }
-    }
-  }, [geocodeAddress])
-
-  // Geocode address when manually typed (with debounce)
   useEffect(() => {
-    // Only geocode if autocomplete is not being used (user typing manually)
-    if (formData.physicalAddress && formData.physicalAddress.trim().length > 5 && isLoaded) {
-      const timeoutId = setTimeout(() => {
-        geocodeAddress(formData.physicalAddress)
-      }, 1500) // Increased debounce for better UX
-      return () => clearTimeout(timeoutId)
-    }
-  }, [formData.physicalAddress, isLoaded, geocodeAddress])
-
-  useEffect(() => {
-    async function classifyFundingPurpose() {
-      if (currentStep >= 4 && formData.purposeOfFunding.trim().length >= 20) {
-        setFundingCategoryLoading(true)
-        try {
-          const response = await getFundingCategory({ funding_purpose: formData.purposeOfFunding })
-          const categoryData = JSON.parse(response)
-          setFundingCategory(categoryData)
-        } catch (err) {
-          console.error('Error classifying funding purpose:', err)
-        } finally {
-          setFundingCategoryLoading(false)
-        }
-      } else {
-        // Reset category if purpose is too short
-        setFundingCategory({ primary_category: '', confidence: 0, explanation: '' })
-        setFundingCategoryLoading(false)
-      }
-    }
-
-    const timer = setTimeout(() => {
-      classifyFundingPurpose()
-    }, 1500);
-
-    return () => clearTimeout(timer);
-
-  },[currentStep, formData.purposeOfFunding])
-
-  // Auto-calculate years in business when registration date is set (only if not already calculated)
-  useEffect(() => {
-    if (formData.businessRegistrationDate) {
-      const calculatedYears = calculateYearsInBusiness(formData.businessRegistrationDate)
-      const currentYears = formData.yearsInBusiness ? parseInt(formData.yearsInBusiness) : null
-      
-      // Only update if the calculated value differs from current value
-      if (calculatedYears !== null && calculatedYears !== currentYears) {
-        setFormData(prev => ({ ...prev, yearsInBusiness: calculatedYears.toString() }))
-      }
-    }
-  }, [formData.businessRegistrationDate]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    async function checkRegistration() {
-      const tempReg = localStorage.getItem('temp_registration')
-      const token = getToken()
+    async function checkAuth() {
       const session = await getCurrentSession()
       
-      if (!tempReg && !session) {
+      if (!session) {
         navigate('/register', { replace: true })
         return
       }
 
-      if (session && !tempReg) {
-        // Check if user already has a completed profile
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('profile_completed')
-            .eq('user_id', user.id)
-            .single()
-          
-          // If profile exists and is completed, redirect to dashboard
-          if (profile && profile.profile_completed) {
-            navigate('/dashboard', { replace: true })
-            return
-          }
-        }
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('profile_completed')
+          .eq('user_id', user.id)
+          .single()
         
-        const tempRegistration = {
-          id: session.user.id,
-          loginMethod: session.user.email ? 'email' : 'phone',
-          email: session.user.email || null,
-          phone: session.user.phone || null,
-          registeredAt: new Date().toISOString(),
-          profileCompleted: false,
+        if (profile && profile.profile_completed) {
+          navigate('/dashboard', { replace: true })
+          return
         }
-        localStorage.setItem('temp_registration', JSON.stringify(tempRegistration))
-        setRegistrationData(tempRegistration)
-        setFormData(prev => ({
-          ...prev,
-          phone: session.user.phone || prev.phone,
-          email: session.user.email || prev.email,
-        }))
-        return
       }
 
-      if (tempReg) {
-        try {
-          const regData = JSON.parse(tempReg)
-          setRegistrationData(regData)
-          setFormData(prev => ({
-            ...prev,
-            phone: regData.loginMethod === 'phone' ? regData.phone : prev.phone,
-            email: regData.loginMethod === 'email' ? regData.email : prev.email,
-          }))
-        } catch (error) {
-          console.error('Error parsing registration data:', error)
-          navigate('/register', { replace: true })
-        }
-      }
+      setLoading(false)
     }
 
-    checkRegistration()
+    checkAuth()
   }, [navigate])
 
-  function calculateYearsInBusiness(registrationDate) {
-    if (!registrationDate) return null
-    
-    const regDate = new Date(registrationDate)
-    const today = new Date()
-    
-    let years = today.getFullYear() - regDate.getFullYear()
-    const monthDiff = today.getMonth() - regDate.getMonth()
-    
-    // Adjust if birthday hasn't occurred this year
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < regDate.getDate())) {
-      years--
-    }
-    
-    return Math.max(0, years) // Ensure non-negative
+  const updateFormData = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  function updateFormData(field, value) {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value }
-      
-      // Auto-calculate years in business when registration date changes
-      if (field === 'businessRegistrationDate') {
-        const years = calculateYearsInBusiness(value)
-        updated.yearsInBusiness = years !== null ? years.toString() : ''
-      }
-      
-      return updated
-    })
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
-      })
-    }
-    if (error) setError('')
-  }
-
-  function validateIDNumber(idNumber) {
-    if (!idNumber) return false
-    const cleaned = idNumber.replace(/\D/g, '')
-    return cleaned.length === 13 && /^\d{13}$/.test(cleaned)
-  }
-
-  function validateStep(step) {
-    const newErrors = {}
-
-    if (step === 1) {
-      if (!formData.ownerFullName.trim()) newErrors.ownerFullName = 'Owner full name is required'
-      if (!formData.idNumber.trim()) {
-        newErrors.idNumber = 'ID number is required'
-      } else if (!validateIDNumber(formData.idNumber)) {
-        newErrors.idNumber = 'Please enter a valid 13-digit South African ID number'
-      }
-      if (formData.dob) {
-        const dobDate = new Date(formData.dob)
-        const today = new Date()
-        if (dobDate > today) {
-          newErrors.dob = 'Date of birth cannot be in the future'
-        } else {
-          const age = today.getFullYear() - dobDate.getFullYear()
-          const monthDiff = today.getMonth() - dobDate.getMonth()
-          const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate()) ? age - 1 : age
-          if (actualAge < 18) {
-            newErrors.dob = 'You must be at least 18 years old to register a business'
-          }
-        }
-      }
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required'
-      if (!formData.gender) newErrors.gender = 'Gender is required'
-      if (!formData.race) newErrors.race = 'Race/Ethnicity is required'
-      if (!formData.disabilityStatus) newErrors.disabilityStatus = 'Disability status is required'
-    }
-
-    if (step === 2) {
-      if (!formData.businessName.trim()) newErrors.businessName = 'Business name is required'
-      if (!formData.businessType) newErrors.businessType = 'Business type is required'
-      if (!formData.industry) newErrors.industry = 'Industry is required'
-      if (!formData.companyRegistrationNumber.trim()) newErrors.companyRegistrationNumber = 'Company registration number is required'
-      if (!formData.businessRegistrationDate) newErrors.businessRegistrationDate = 'Business registration date is required'
-      if (formData.postalCode && !/^\d{4}$/.test(formData.postalCode.trim())) {
-        newErrors.postalCode = 'Postal code must be 4 digits'
-      }
-    }
-
-    if (step === 3) {
-      if (!formData.annualRevenue) newErrors.annualRevenue = 'Annual revenue is required'
-      if (!formData.numberOfEmployees) newErrors.numberOfEmployees = 'Number of employees is required'
-    }
-
-    if (step === 4) {
-      if (!formData.fundingAmountNeeded) newErrors.fundingAmountNeeded = 'Funding amount needed is required'
-      if (!formData.timeline) newErrors.timeline = 'Timeline is required'
-      if (!formData.purposeOfFunding.trim()) {
-        newErrors.purposeOfFunding = 'Purpose of funding is required'
-      } else if (formData.purposeOfFunding.trim().length < 20) {
-        newErrors.purposeOfFunding = 'Please provide more details (at least 20 characters)'
-      }
-      if (formData.fundingTypes.length === 0) {
-        newErrors.fundingTypes = 'Select at least one funding type'
-      }
-      if (formData.previousFundingHistory && !formData.previousFundingDetails.trim()) {
-        newErrors.previousFundingDetails = 'Please provide details about previous funding'
-      }
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  function handleNext(e) {
-    // Prevent any form submission
-    if (e) {
-      e.preventDefault()
-      e.stopPropagation()
-    }
-    
-    if (validateStep(currentStep)) {
-      setIsNavigating(true)
-      const nextStep = Math.min(currentStep + 1, STEPS.length)
-      setCurrentStep(nextStep)
-      
-      // Reset navigation flag after a short delay
-      setTimeout(() => {
-        setIsNavigating(false)
-      }, 100)
+  const handleNext = () => {
+    if (currentStep < 5) {
+      setCurrentStep(prev => prev + 1)
     }
   }
 
-  function handleBack() {
-    setCurrentStep(prev => Math.max(prev - 1, 1))
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(prev => prev - 1)
+    }
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    
-    // CRITICAL: Only allow submission on the final step (Review/Step 5)
-    // This should never be called on earlier steps due to form onSubmit guard
-    if (currentStep !== STEPS.length) {
-      console.warn('handleSubmit called on non-final step. Preventing account creation.')
-      return
+  const handleAssessmentNext = () => {
+    if (currentAssessmentSection < 4) {
+      setCompletedAssessmentSections(prev => [...prev, currentAssessmentSection])
+      setCurrentAssessmentSection(prev => prev + 1)
+    } else {
+      // All assessment sections complete, go to step 5
+      setCompletedAssessmentSections(prev => [...prev, 4])
+      setCurrentStep(5)
     }
-    
-    // Double-check we're on the review step
-    if (currentStep !== 5) {
-      console.error('Account creation attempted on wrong step:', currentStep)
-      return
-    }
-    
-    if (!validateStep(currentStep)) return
+  }
 
+  const handleAssessmentBack = () => {
+    if (currentAssessmentSection > 1) {
+      setCurrentAssessmentSection(prev => prev - 1)
+    } else {
+      setCurrentStep(3) // Go back to funding needs
+    }
+  }
+
+  const handleSubmit = async () => {
     setLoading(true)
-    setError('')
-
     try {
-      if (!registrationData) {
-        setLoading(false)
-        navigate('/register', { replace: true })
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        navigate('/register')
         return
       }
 
-      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
-      
-      if (userError || !currentUser) {
-        console.error('Error getting current user:', userError)
-        setError('Authentication error. Please try logging in again.')
-        setLoading(false)
-        navigate('/register', { replace: true })
-        return
-      }
-
-      // Prepare user profile data for user_profiles table
-      const userProfileData = {
-        user_id: currentUser.id,
-        login_method: registrationData.loginMethod || (currentUser.email ? 'email' : 'phone'),
-        email: currentUser.email || registrationData.email || formData.email || null,
-        phone: formData.phone || registrationData.phone || null,
-        password_hash: 'password_stored_in_auth_users_table', // Passwords stored in auth.users
-        owner_full_name: formData.ownerFullName,
-        id_number: formData.idNumber.replace(/\D/g, ''), // Remove non-digits
-        dob: formData.dob || null,
-        gender: normalizeValue(formData.gender),
-        race: normalizeValue(formData.race, true),
-        disability_status: normalizeValue(formData.disabilityStatus),
-        business_name: formData.businessName,
-        company_registration_number: formData.companyRegistrationNumber || null,
-        business_type: formData.businessType,
-        industry: normalizeValue(formData.industry),
-        business_registration_date: formData.businessRegistrationDate || null,
-        years_in_business: formData.businessRegistrationDate 
-          ? (formData.yearsInBusiness ? parseInt(formData.yearsInBusiness) : calculateYearsInBusiness(formData.businessRegistrationDate))
-          : null,
-        physical_address: formData.physicalAddress || null,
-        postal_code: formData.postalCode || null,
-        website: formData.website || null,
-        tax_number: formData.taxNumber || null,
-        vat_number: formData.vatNumber || null,
-        annual_revenue: formData.annualRevenue,
-        number_of_employees: formData.numberOfEmployees,
-        bee_level: formData.beeLevel ? normalizeValue(formData.beeLevel) : null,
-        funding_amount_needed: formData.fundingAmountNeeded,
-        timeline: formData.timeline,
-        purpose_of_funding: formData.purposeOfFunding,
-        previous_funding_history: formData.previousFundingHistory,
-        previous_funding_details: formData.previousFundingDetails || null,
-        funding_types: formData.fundingTypes.length > 0 ? formData.fundingTypes : [],
-        profile_completed: true,
-        funding_category: fundingCategory.primary_category || null,
-        funding_category_confidence: fundingCategory.confidence || null,
-        funding_category_explanation: fundingCategory.explanation || null,
-      }
-
-      // Check if profile already exists for this user
-      const { data: existingProfile, error: existingProfileError } = await supabase
+      // Save profile data to Supabase
+      const { error } = await supabase
         .from('user_profiles')
-        .select('id, user_id, id_number')
-        .eq('user_id', currentUser.id)
-        .maybeSingle()
+        .upsert({
+          user_id: user.id,
+          ...formData,
+          profile_completed: true,
+          updated_at: new Date().toISOString(),
+        })
 
-      // Check if ID number is already taken by another user
-      const normalizedIdNumber = formData.idNumber.replace(/\D/g, '')
-      const { data: idNumberProfile, error: idNumberError } = await supabase
-        .from('user_profiles')
-        .select('id, user_id')
-        .eq('id_number', normalizedIdNumber)
-        .maybeSingle()
-
-      // Handle query errors
-      if (existingProfileError) {
-        console.error('Error checking existing profile:', existingProfileError)
-        setError('Error checking profile. Please try again.')
+      if (error) {
+        console.error('Error saving profile:', error)
+        alert('Error saving profile. Please try again.')
         setLoading(false)
         return
       }
 
-      if (idNumberError && idNumberError.code !== 'PGRST116') { // PGRST116 is "not found" which is fine
-        console.error('Error checking ID number:', idNumberError)
-        setError('Error checking ID number. Please try again.')
-        setLoading(false)
-        return
-      }
-
-      let profile
-      let profileError
-
-      // If ID number exists and belongs to a different user, show error
-      if (idNumberProfile && idNumberProfile.user_id !== currentUser.id) {
-        setError('This ID number is already registered to another account. Please use a different ID number or contact support.')
-        setLoading(false)
-        return
-      }
-
-      // If profile exists for this user, update it
-      if (existingProfile) {
-        const { data: updatedProfile, error: updateError } = await supabase
-          .from('user_profiles')
-          .update({
-            ...userProfileData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', currentUser.id)
-          .select()
-          .single()
-        
-        profile = updatedProfile
-        profileError = updateError
-      } else {
-        // Create new profile
-        const { data: insertedProfile, error: insertError } = await supabase
-          .from('user_profiles')
-          .insert(userProfileData)
-          .select()
-          .single()
-        
-        profile = insertedProfile
-        profileError = insertError
-      }
-
-      console.log(profile)
-
-      if (profileError) {
-        console.error('Error saving user profile:', profileError)
-        setError(`Failed to save profile: ${profileError.message || 'Please try again.'}`)
-        setLoading(false)
-        return
-      }
-
-      // Remove temp registration
-      localStorage.removeItem('temp_registration')
-
-      // Set user data
-      const completeUser = {
-        id: currentUser.id,
-        email: currentUser.email || registrationData.email,
-        ...userProfileData,
-      }
-      setUser(completeUser)
-
-      // Get session and set token
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setToken(session.access_token)
-      }
-
-      setLoading(false)
-      navigate('/dashboard', { replace: true })
+      navigate('/dashboard')
     } catch (error) {
-      console.error('Error completing profile:', error)
-      setError('An unexpected error occurred. Please try again.')
+      console.error('Error:', error)
+      alert('An error occurred. Please try again.')
       setLoading(false)
     }
   }
 
-  function toggleFundingType(type) {
-    setFormData(prev => ({
-      ...prev,
-      fundingTypes: prev.fundingTypes.includes(type)
-        ? prev.fundingTypes.filter(t => t !== type)
-        : [...prev.fundingTypes, type],
-    }))
-    if (errors.fundingTypes) {
-      setErrors(prev => {
-        const newErrors = { ...prev }
-        delete newErrors.fundingTypes
-        return newErrors
-      })
-    }
-  }
-
-  if (!registrationData) {
+  if (loading && currentStep === 1) {
     return (
       <div className="min-h-screen grid place-items-center p-4">
         <Card className="w-full max-w-md">
@@ -773,932 +358,1333 @@ export default function AccountCreation() {
     )
   }
 
-  const stepIcons = [User, Building2, TrendingUp, DollarSign, FileCheck]
-  const progressPercentage = (currentStep / STEPS.length) * 100
-
-  return (
-    <div className={cn('min-h-screen py-8 px-4 bg-gradient-to-br from-background to-muted/20')}>
-      <div className="max-w-5xl mx-auto">
-        <Card className="w-full shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b pb-6">
-            <div className="text-center mb-6">
-              <CardTitle className="text-3xl font-bold mb-2">Complete Your Profile</CardTitle>
-              <CardDescription className="text-base">
-                Let's set up your account - this will only take a few minutes
-              </CardDescription>
-              <div className="mt-4">
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <span>Progress:</span>
-                  <div className="flex-1 max-w-[200px] h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary rounded-full transition-all duration-500"
-                      style={{ width: `${progressPercentage}%` }}
-                    />
-                  </div>
-                  <span className="font-semibold text-primary">
-                    {Math.round(progressPercentage)}%
-                  </span>
-                </div>
-              </div>
+  // Step 1: Business Type Selection
+  if (currentStep === 1) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
+        <div className="max-w-4xl mx-auto pt-8">
+          <StepTimeline currentStep={currentStep} />
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
+              <Building2 className="w-8 h-8 text-purple-600" />
             </div>
-            
-            {/* Progress Steps */}
-            <div className="mt-8 flex items-center justify-between relative">
-              {STEPS.map((step, index) => {
-                const StepIcon = stepIcons[index]
-                const isCompleted = currentStep > step.id
-                const isCurrent = currentStep === step.id
-                
-                return (
-                  <div key={step.id} className="flex items-center flex-1 relative z-10">
-                    <div className="flex flex-col items-center flex-1">
-                      <div
-                        className={cn(
-                          'w-14 h-14 rounded-full flex items-center justify-center border-2 transition-all duration-300 shadow-lg',
-                          isCompleted
-                            ? 'bg-primary border-primary text-primary-foreground'
-                            : isCurrent
-                            ? 'border-primary text-primary bg-primary/10 ring-4 ring-primary/20'
-                            : 'border-muted text-muted-foreground bg-background'
-                        )}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-6 h-6" />
-                        ) : (
-                          <StepIcon className="w-5 h-5" />
-                        )}
-                      </div>
-                      <div className="mt-3 text-center max-w-[120px]">
-                        <p className={cn(
-                          'text-xs font-semibold leading-tight',
-                          isCompleted || isCurrent 
-                            ? 'text-foreground' 
-                            : 'text-muted-foreground'
-                        )}>
-                          {step.title}
-                        </p>
-                        <p className={cn(
-                          'text-[10px] mt-1',
-                          isCurrent ? 'text-primary font-medium' : 'text-muted-foreground'
-                        )}>
-                          {step.description}
-                        </p>
-                      </div>
-                    </div>
-                    {index < STEPS.length - 1 && (
-                      <div className={cn(
-                        'h-1 flex-1 mx-3 transition-all duration-500 rounded-full',
-                        currentStep > step.id 
-                          ? 'bg-primary' 
-                          : 'bg-muted'
-                      )} />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </CardHeader>
+            <h1 className="text-3xl font-bold mb-2">Tell us about your business</h1>
+            <p className="text-muted-foreground text-lg">
+              We'll help you find the right funding based on your business type
+            </p>
+          </div>
 
-          <CardContent className="p-8">
-            {error && (
-              <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                {error}
+          <Card className="w-full">
+            <CardContent className="p-8">
+              <h2 className="text-2xl font-semibold mb-6">What describes your business?</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {BUSINESS_TYPES.map((type) => {
+                  const Icon = type.icon
+                  return (
+                    <button
+                      key={type.id}
+                      onClick={() => {
+                        updateFormData('businessType', type.id)
+                        setTimeout(() => handleNext(), 300)
+                      }}
+                      className={cn(
+                        "p-6 rounded-lg border-2 transition-all text-left",
+                        formData.businessType === type.id
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                          : "border-border hover:border-purple-300 hover:bg-muted/50"
+                      )}
+                    >
+                      <Icon className={cn("w-8 h-8 mb-3", type.color)} />
+                      <h3 className="font-semibold text-lg mb-1">{type.label}</h3>
+                      <p className="text-sm text-muted-foreground">{type.description}</p>
+                    </button>
+                  )
+                })}
               </div>
-            )}
-            <form onSubmit={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              
-              // Prevent submission if we're currently navigating between steps
-              if (isNavigating) {
-                return false
-              }
-              
-              // Only allow form submission on the final step (Review/Step 5)
-              // AND only when the submit button is explicitly clicked
-              const isFinalStep = currentStep === STEPS.length
-              
-              if (!isFinalStep) {
-                // On all steps before Review, completely prevent form submission
-                return false
-              }
-              
-              // On final step, check if this is from the submit button
-              const submitter = e.nativeEvent?.submitter
-              const isSubmitButton = submitter?.type === 'submit' || 
-                                     (submitter?.tagName === 'BUTTON' && submitter?.getAttribute('type') === 'submit')
-              
-              // Only proceed if we're on final step AND submit button was clicked
-              if (isFinalStep && isSubmitButton) {
-                handleSubmit(e)
-              } else {
-                // Even on final step, if not from submit button, prevent
-                return false
-              }
-              
-              return false
-            }}
-            onKeyDown={(e) => {
-              // Prevent Enter key from submitting form on steps 1-4
-              if (e.key === 'Enter' && currentStep < STEPS.length) {
-                e.preventDefault()
-                e.stopPropagation()
-                // User must click Next button explicitly
-              }
-            }}>
-              {/* Step 1: Personal & Owner Information */}
-              {currentStep === 1 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="mb-6 pb-4 border-b">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{STEPS[0].title}</h3>
-                        <p className="text-sm text-muted-foreground">{STEPS[0].description}</p>
-                      </div>
-                    </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 2: Business Details
+  if (currentStep === 2) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
+        <div className="max-w-4xl mx-auto pt-8">
+          <StepTimeline currentStep={currentStep} />
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">Tell us about your business</h1>
+          </div>
+
+          <Card className="w-full">
+            <CardContent className="p-8 space-y-6">
+              {formData.businessType === 'registered' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-purple-600" />
+                      Registered Company Details
+                    </h2>
+                    <Button variant="ghost" size="sm">Change</Button>
                   </div>
-                  <FieldGroup className="space-y-5">
-                    <Field>
-                      <FieldLabel htmlFor="ownerFullName">Owner Full Name *</FieldLabel>
-                      <Input
-                        id="ownerFullName"
-                        value={formData.ownerFullName}
-                        onChange={(e) => updateFormData('ownerFullName', e.target.value)}
-                        placeholder="John Doe"
-                        required
-                        className={errors.ownerFullName ? 'border-red-500' : ''}
-                      />
-                      {errors.ownerFullName && (
-                        <p className="text-sm text-red-500 mt-1">{errors.ownerFullName}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="idNumber">ID Number *</FieldLabel>
-                      <Input
-                        id="idNumber"
-                        value={formData.idNumber}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '').slice(0, 13)
-                          updateFormData('idNumber', value)
-                        }}
-                        placeholder="1234567890123"
-                        maxLength={13}
-                        required
-                        className={errors.idNumber ? 'border-red-500' : ''}
-                      />
-                      <FieldDescription>13-digit South African ID number</FieldDescription>
-                      {errors.idNumber && (
-                        <p className="text-sm text-red-500 mt-1">{errors.idNumber}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="dob">Date of Birth</FieldLabel>
 
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formData.dob && "text-muted-foreground",
-                              errors.dob && 'border-red-500'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formData.dob
-                                    ? format(new Date(formData.dob), "PPP")
-                                    : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            defaultMonth={formData.dob ? new Date(formData.dob) : undefined}
-                            selected={formData.dob ? new Date(formData.dob) : null}
-                            onSelect={(date) =>
-                              updateFormData('dob', date)
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-
-                      <FieldDescription>Optional - Used for age verification</FieldDescription>
-                      {errors.dob && (
-                        <p className="text-sm text-red-500 mt-1">{errors.dob}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="phone">Phone Number *</FieldLabel>
+                  <Field>
+                    <FieldLabel>Company Registration Number</FieldLabel>
+                    <div className="flex gap-2">
                       <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => updateFormData('phone', e.target.value)}
-                        placeholder="+27 12 345 6789"
-                        required
-                        disabled={registrationData?.loginMethod === 'phone'}
-                        className={errors.phone ? 'border-red-500' : ''}
+                        value={formData.companyRegistrationNumber}
+                        onChange={(e) => updateFormData('companyRegistrationNumber', e.target.value)}
+                        placeholder="3243521324353423112"
                       />
-                      {errors.phone && (
-                        <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="email">Email</FieldLabel>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => updateFormData('email', e.target.value)}
-                        placeholder="john@example.com"
-                        disabled={registrationData?.loginMethod === 'email'}
-                        className={errors.email ? 'border-red-500' : ''}
-                      />
-                      <FieldDescription>
-                        {registrationData?.loginMethod === 'email' 
-                          ? 'Email from registration' 
-                          : 'Optional contact email'}
-                      </FieldDescription>
-                    </Field>
-                    
-                    <div className="border-t pt-6 mt-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Shield className="w-4 h-4 text-primary" />
-                        <h4 className="text-sm font-semibold">Demographics (for BEE compliance) *</h4>
-                      </div>
-                      
-                      <Field>
-                        <FieldLabel>Gender *</FieldLabel>
-                        <RadioGroup
-                          value={formData.gender}
-                          onValueChange={(value) => updateFormData('gender', value)}
-                        >
-                          <div className="grid grid-cols-2 gap-3">
-                            {GENDERS.map((gender) => (
-                              <div key={gender} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                <RadioGroupItem value={normalizeValue(gender)} id={`gender-${gender}`} />
-                                <Label htmlFor={`gender-${gender}`} className="font-normal cursor-pointer text-sm flex-1">
-                                  {gender}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </RadioGroup>
-                        {errors.gender && (
-                          <p className="text-sm text-red-500 mt-2">{errors.gender}</p>
-                        )}
-                      </Field>
-                      
-                      <Field>
-                        <FieldLabel>Race/Ethnicity *</FieldLabel>
-                        <RadioGroup
-                          value={formData.race}
-                          onValueChange={(value) => updateFormData('race', value)}
-                        >
-                          <div className="grid grid-cols-2 gap-3">
-                            {RACES.map((race) => (
-                              <div key={race} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                <RadioGroupItem value={normalizeValue(race, true)} id={`race-${race}`} />
-                                <Label htmlFor={`race-${race}`} className="font-normal cursor-pointer text-sm flex-1">
-                                  {race}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </RadioGroup>
-                        {errors.race && (
-                          <p className="text-sm text-red-500 mt-2">{errors.race}</p>
-                        )}
-                      </Field>
-                      
-                      <Field>
-                        <FieldLabel>Disability Status *</FieldLabel>
-                        <RadioGroup
-                          value={formData.disabilityStatus}
-                          onValueChange={(value) => updateFormData('disabilityStatus', value)}
-                        >
-                          <div className="grid grid-cols-3 gap-3">
-                            {DISABILITY_STATUSES.map((status) => (
-                              <div key={status} className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted transition-colors">
-                                <RadioGroupItem value={normalizeValue(status)} id={`disability-${status}`} />
-                                <Label htmlFor={`disability-${status}`} className="font-normal cursor-pointer text-sm flex-1">
-                                  {status}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        </RadioGroup>
-                        {errors.disabilityStatus && (
-                          <p className="text-sm text-red-500 mt-2">{errors.disabilityStatus}</p>
-                        )}
-                      </Field>
+                      <Button variant="outline">
+                        <Search className="w-4 h-4 mr-2" />
+                        Lookup
+                      </Button>
                     </div>
-                  </FieldGroup>
-                </div>
-              )}
+                    <FieldDescription>
+                      Click "Lookup" to verify with CIPC and prefill your details.
+                    </FieldDescription>
+                  </Field>
 
-              {/* Step 2: Business Details */}
-              {currentStep === 2 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="mb-6 pb-4 border-b">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Building2 className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{STEPS[1].title}</h3>
-                        <p className="text-sm text-muted-foreground">{STEPS[1].description}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <FieldGroup className="space-y-5">
-                    <Field>
-                      <FieldLabel htmlFor="businessName">Business Name *</FieldLabel>
+                  <Field>
+                    <FieldLabel>Business Name</FieldLabel>
+                    <div className="relative">
                       <Input
-                        id="businessName"
                         value={formData.businessName}
                         onChange={(e) => updateFormData('businessName', e.target.value)}
-                        placeholder="ABC Enterprises (Pty) Ltd"
-                        required
-                        className={errors.businessName ? 'border-red-500' : ''}
+                        placeholder="Thabo Pty Ltd"
                       />
-                      {errors.businessName && (
-                        <p className="text-sm text-red-500 mt-1">{errors.businessName}</p>
-                      )}
-                    </Field>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field>
-                        <FieldLabel htmlFor="companyRegistrationNumber">Company Registration Number *</FieldLabel>
-                        <Input
-                          id="companyRegistrationNumber"
-                          value={formData.companyRegistrationNumber}
-                          onChange={(e) => updateFormData('companyRegistrationNumber', e.target.value)}
-                          placeholder="2023/123456/07"
-                          required
-                          className={errors.companyRegistrationNumber ? 'border-red-500' : ''}
-                        />
-                        <FieldDescription>CIPC registration number</FieldDescription>
-                        {errors.companyRegistrationNumber && (
-                          <p className="text-sm text-red-500 mt-1">{errors.companyRegistrationNumber}</p>
-                        )}
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="businessType">Business Type *</FieldLabel>
-                        <Select
-                          value={formData.businessType}
-                          onValueChange={(value) => updateFormData('businessType', value)}
-                        >
-                          <SelectTrigger className={errors.businessType ? 'border-red-500' : ''}>
-                            <SelectValue placeholder="Select business type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sole-proprietor">Sole Proprietor</SelectItem>
-                            <SelectItem value="partnership">Partnership</SelectItem>
-                            <SelectItem value="pty-ltd">Pty (Ltd)</SelectItem>
-                            <SelectItem value="cc">Close Corporation (CC)</SelectItem>
-                            <SelectItem value="npc">Non-Profit Company (NPC)</SelectItem>
-                            <SelectItem value="cooperative">Cooperative</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        {errors.businessType && (
-                          <p className="text-sm text-red-500 mt-1">{errors.businessType}</p>
-                        )}
-                      </Field>
-                    </div>
-                    <Field>
-                      <FieldLabel htmlFor="industry">Industry *</FieldLabel>
-                      <Select
-                        value={formData.industry}
-                        onValueChange={(value) => updateFormData('industry', value)}
-                      >
-                        <SelectTrigger className={errors.industry ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select primary industry" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INDUSTRIES.map((industry) => (
-                            <SelectItem key={industry} value={normalizeValue(industry)}>
-                              {industry}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.industry && (
-                        <p className="text-sm text-red-500 mt-1">{errors.industry}</p>
-                      )}
-                    </Field>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field>
-                        <FieldLabel htmlFor="businessRegistrationDate">Business Registration Date *</FieldLabel>
-                        <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal",
-                              !formData.businessRegistrationDate && "text-muted-foreground",
-                              errors.businessRegistrationDate && 'border-red-500'
-                            )}
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {formData.businessRegistrationDate
-                                    ? format(new Date(formData.businessRegistrationDate), "PPP")
-                                    : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            defaultMonth={formData.businessRegistrationDate ? new Date(formData.businessRegistrationDate) : new Date()}
-                            selected={formData.businessRegistrationDate ? new Date(formData.businessRegistrationDate) : null}
-                            onSelect={(date) =>
-                              updateFormData('businessRegistrationDate', date)
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                        {errors.businessRegistrationDate && (
-                          <p className="text-sm text-red-500 mt-1">{errors.businessRegistrationDate}</p>
-                        )}
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="yearsInBusiness">Years in Business</FieldLabel>
-                        <Input
-                          id="yearsInBusiness"
-                          type="text"
-                          value={formData.businessRegistrationDate 
-                            ? (formData.yearsInBusiness || calculateYearsInBusiness(formData.businessRegistrationDate) || '0')
-                            : ''}
-                          disabled
-                          placeholder="Auto-calculated"
-                          className="bg-muted cursor-not-allowed"
-                        />
-                        <FieldDescription>Automatically calculated from registration date</FieldDescription>
-                      </Field>
-                    </div>
-                    <Field>
-                      <FieldLabel htmlFor="physicalAddress">Physical Address</FieldLabel>
-                      {isLoaded ? (
-                        <Autocomplete
-                          onLoad={(autocomplete) => {
-                            autocompleteRef.current = autocomplete
-                            // Configure autocomplete for South Africa
-                            autocomplete.setComponentRestrictions({ country: 'za' })
-                            autocomplete.setFields(['geometry', 'formatted_address', 'address_components', 'name'])
-                          }}
-                          onPlaceChanged={onPlaceChanged}
-                        >
-                          <Input
-                            id="physicalAddress"
-                            type="text"
-                            value={formData.physicalAddress}
-                            onChange={(e) => {
-                              updateFormData('physicalAddress', e.target.value)
-                              setAddressError('')
-                            }}
-                            placeholder="Start typing your address... (e.g., 123 Main Street, Johannesburg, Gauteng)"
-                            className={addressError ? 'border-amber-500' : ''}
-                          />
-                        </Autocomplete>
-                      ) : (
-                        <Input
-                          id="physicalAddress"
-                          type="text"
-                          value={formData.physicalAddress}
-                          onChange={(e) => {
-                            updateFormData('physicalAddress', e.target.value)
-                            setAddressError('')
-                          }}
-                          placeholder="123 Main Street, City, Province"
-                          className={addressError ? 'border-amber-500' : ''}
-                        />
-                      )}
-                      <FieldDescription>
-                        {isGeocoding 
-                          ? 'Locating address on map...' 
-                          : 'Start typing to see address suggestions. Results are optimized for South African addresses.'}
-                      </FieldDescription>
-                      {addressError && (
-                        <p className="text-sm text-amber-600 dark:text-amber-400 mt-1">{addressError}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="postalCode">Postal Code</FieldLabel>
-                      <Input
-                        id="postalCode"
-                        value={formData.postalCode}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '').slice(0, 4)
-                          updateFormData('postalCode', value)
-                        }}
-                        placeholder="0000"
-                        maxLength={4}
-                        className={errors.postalCode ? 'border-red-500' : ''}
-                      />
-                      <FieldDescription>4-digit South African postal code (optional)</FieldDescription>
-                      {errors.postalCode && (
-                        <p className="text-sm text-red-500 mt-1">{errors.postalCode}</p>
-                      )}
-                    </Field>
-                    {formData.physicalAddress && formData.physicalAddress.trim().length > 5 && (
-                      <Field>
-                        <FieldLabel>Location Map</FieldLabel>
-                        {loadError ? (
-                          <div className="text-sm text-muted-foreground p-4 border rounded-md">
-                            Error loading map. Please check your Google Maps API key.
-                          </div>
-                        ) : !isLoaded ? (
-                          <div className="text-sm text-muted-foreground p-4 border rounded-md">
-                            Loading map...
-                          </div>
-                        ) : (
-                          <div className="border rounded-md overflow-hidden">
-                            <GoogleMap
-                              mapContainerStyle={mapContainerStyle}
-                              center={mapCenter}
-                              zoom={mapZoom}
-                              options={{
-                                streetViewControl: false,
-                                mapTypeControl: false,
-                                fullscreenControl: true,
-                              }}
-                            >
-                              <Marker position={mapCenter} />
-                            </GoogleMap>
-                          </div>
-                        )}
-                        <FieldDescription>Map showing your business location</FieldDescription>
-                      </Field>
-                    )}
-                    <div className="grid grid-cols-2 gap-4">
-                      <Field>
-                        <FieldLabel htmlFor="website">Website</FieldLabel>
-                        <Input
-                          id="website"
-                          type="url"
-                          value={formData.website}
-                          onChange={(e) => updateFormData('website', e.target.value)}
-                          placeholder="https://www.example.com"
-                        />
-                      </Field>
-                      <Field>
-                        <FieldLabel htmlFor="taxNumber">Tax Number</FieldLabel>
-                        <Input
-                          id="taxNumber"
-                          value={formData.taxNumber}
-                          onChange={(e) => updateFormData('taxNumber', e.target.value)}
-                          placeholder="1234567890"
-                        />
-                      </Field>
-                    </div>
-                    <Field>
-                      <FieldLabel htmlFor="vatNumber">VAT Number</FieldLabel>
-                      <Input
-                        id="vatNumber"
-                        value={formData.vatNumber}
-                        onChange={(e) => updateFormData('vatNumber', e.target.value)}
-                        placeholder="4123456789"
-                      />
-                    </Field>
-                  </FieldGroup>
-                </div>
-              )}
-
-              {/* Step 3: Business Metrics */}
-              {currentStep === 3 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="mb-6 pb-4 border-b">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <TrendingUp className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{STEPS[2].title}</h3>
-                        <p className="text-sm text-muted-foreground">{STEPS[2].description}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <FieldGroup className="space-y-5">
-                    <Field>
-                      <FieldLabel htmlFor="annualRevenue">Annual Revenue *</FieldLabel>
-                      <Select
-                        value={formData.annualRevenue}
-                        onValueChange={(value) => updateFormData('annualRevenue', value)}
-                      >
-                        <SelectTrigger className={errors.annualRevenue ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select annual revenue range" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REVENUE_RANGES.map((range) => (
-                            <SelectItem key={range.value} value={range.value}>
-                              {range.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.annualRevenue && (
-                        <p className="text-sm text-red-500 mt-1">{errors.annualRevenue}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="numberOfEmployees">Number of Employees *</FieldLabel>
-                      <Select
-                        value={formData.numberOfEmployees}
-                        onValueChange={(value) => updateFormData('numberOfEmployees', value)}
-                      >
-                        <SelectTrigger className={errors.numberOfEmployees ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select number of employees" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {EMPLOYEE_RANGES.map((range) => (
-                            <SelectItem key={range.value} value={range.value}>
-                              {range.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.numberOfEmployees && (
-                        <p className="text-sm text-red-500 mt-1">{errors.numberOfEmployees}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="beeLevel">BEE Level</FieldLabel>
-                      <Select
-                        value={formData.beeLevel}
-                        onValueChange={(value) => updateFormData('beeLevel', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select BEE level (optional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {BEE_LEVELS.map((level) => (
-                            <SelectItem key={level} value={normalizeValue(level)}>
-                              {level}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-                  </FieldGroup>
-                </div>
-              )}
-
-              {/* Step 4: Funding Requirements */}
-              {currentStep === 4 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="mb-6 pb-4 border-b">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <DollarSign className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{STEPS[3].title}</h3>
-                        <p className="text-sm text-muted-foreground">{STEPS[3].description}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <FieldGroup className="space-y-5">
-                    <Field>
-                      <FieldLabel htmlFor="fundingAmountNeeded">Funding Amount Needed *</FieldLabel>
-                      <Select
-                        value={formData.fundingAmountNeeded}
-                        onValueChange={(value) => updateFormData('fundingAmountNeeded', value)}
-                      >
-                        <SelectTrigger className={errors.fundingAmountNeeded ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select funding amount needed" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REVENUE_RANGES.map((range) => (
-                            <SelectItem key={range.value} value={range.value}>
-                              {range.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.fundingAmountNeeded && (
-                        <p className="text-sm text-red-500 mt-1">{errors.fundingAmountNeeded}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="timeline">Timeline *</FieldLabel>
-                      <Select
-                        value={formData.timeline}
-                        onValueChange={(value) => updateFormData('timeline', value)}
-                      >
-                        <SelectTrigger className={errors.timeline ? 'border-red-500' : ''}>
-                          <SelectValue placeholder="Select timeline" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TIMELINE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {errors.timeline && (
-                        <p className="text-sm text-red-500 mt-1">{errors.timeline}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel htmlFor="purposeOfFunding">Purpose of Funding *</FieldLabel>
-                      <textarea
-                        id="purposeOfFunding"
-                        value={formData.purposeOfFunding}
-                        onChange={(e) => updateFormData('purposeOfFunding', e.target.value)}
-                        placeholder="Describe what you need the funding for..."
-                        className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        rows={5}
-                        required
-                      />
-                      <FieldDescription>Please provide at least 20 characters</FieldDescription>
-                      {errors.purposeOfFunding && (
-                        <p className="text-sm text-red-500 mt-1">{errors.purposeOfFunding}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <FieldLabel>Funding Types *</FieldLabel>
-                      <FieldDescription>What types of funding are you interested in?</FieldDescription>
-                      <div className="grid grid-cols-2 gap-3 mt-2">
-                        {FUNDING_TYPES.map((type) => (
-                          <div key={type} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`funding-${type}`}
-                              checked={formData.fundingTypes.includes(type)}
-                              onCheckedChange={() => toggleFundingType(type)}
-                            />
-                            <Label htmlFor={`funding-${type}`} className="text-sm font-normal cursor-pointer">
-                              {type}
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                      {errors.fundingTypes && (
-                        <p className="text-sm text-red-500 mt-2">{errors.fundingTypes}</p>
-                      )}
-                    </Field>
-                    <Field>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="previousFundingHistory"
-                          checked={formData.previousFundingHistory}
-                          onCheckedChange={(checked) => updateFormData('previousFundingHistory', checked)}
-                        />
-                        <Label htmlFor="previousFundingHistory" className="text-sm font-normal cursor-pointer">
-                          Have you received funding before?
-                        </Label>
-                      </div>
-                      {formData.previousFundingHistory && (
-                        <div className="mt-3">
-                          <FieldLabel htmlFor="previousFundingDetails">Previous Funding Details *</FieldLabel>
-                          <textarea
-                            id="previousFundingDetails"
-                            value={formData.previousFundingDetails}
-                            onChange={(e) => updateFormData('previousFundingDetails', e.target.value)}
-                            placeholder="Describe your previous funding experience..."
-                            className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-2"
-                            rows={3}
-                          />
-                          {errors.previousFundingDetails && (
-                            <p className="text-sm text-red-500 mt-1">{errors.previousFundingDetails}</p>
-                          )}
+                      {formData.businessName && (
+                        <div className="flex items-center gap-1 mt-2 text-green-600">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span className="text-sm">Verified with CIPC</span>
                         </div>
                       )}
+                    </div>
+                  </Field>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <Field>
+                      <FieldLabel>Province *</FieldLabel>
+                      <Select value={formData.province} onValueChange={(value) => updateFormData('province', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROVINCES.map(province => (
+                            <SelectItem key={province} value={province}>{province}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </Field>
-                  </FieldGroup>
+
+                    <Field>
+                      <FieldLabel>Postal Code *</FieldLabel>
+                      <Input
+                        value={formData.postalCode}
+                        onChange={(e) => updateFormData('postalCode', e.target.value)}
+                        placeholder="2001"
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={formData.differentTradingAddress}
+                      onCheckedChange={(checked) => updateFormData('differentTradingAddress', checked)}
+                    />
+                    <Label>Different trading address?</Label>
+                  </div>
+                  <FieldDescription>If you operate from a different location.</FieldDescription>
                 </div>
               )}
 
-              {/* Step 5: Review */}
-              {currentStep === 5 && (
-                <div className="space-y-6 animate-in fade-in-50 duration-300">
-                  <div className="mb-6 pb-4 border-b">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <FileCheck className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold">{STEPS[4].title}</h3>
-                        <p className="text-sm text-muted-foreground">{STEPS[4].description}</p>
-                      </div>
+              <Separator />
+
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-purple-600" />
+                  Your Industry
+                </h2>
+
+                <Field>
+                  <FieldLabel>What industry is your business in? *</FieldLabel>
+                  <Select value={formData.industry} onValueChange={(value) => updateFormData('industry', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDUSTRIES.map(industry => (
+                        <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {formData.industry === 'Agriculture & Agro-processing' && (
+                  <Field>
+                    <FieldLabel>What type of agriculture business? *</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {['Horticulture', 'Crop farming', 'Livestock', 'Agri-inputs', 'Agro-processing'].map(option => (
+                        <Badge
+                          key={option}
+                          variant={formData.subIndustry.includes(option) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            const newSub = formData.subIndustry.includes(option)
+                              ? formData.subIndustry.filter(s => s !== option)
+                              : [...formData.subIndustry, option]
+                            updateFormData('subIndustry', newSub)
+                          }}
+                        >
+                          {option}
+                        </Badge>
+                      ))}
                     </div>
+                  </Field>
+                )}
+
+                <div className="space-y-4">
+                  <h3 className="font-medium">Quick details about your business</h3>
+
+                  <Field>
+                    <FieldLabel>Who do you mainly sell to?</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {['Consumers', 'Businesses', 'Government/SoEs', 'Mixed'].map(option => (
+                        <Badge
+                          key={option}
+                          variant={formData.whoDoYouSellTo === option ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => updateFormData('whoDoYouSellTo', option)}
+                        >
+                          {option}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <FieldLabel>Is your sub-sector regulated?</FieldLabel>
+                      <FieldDescription>Select applicable regulations</FieldDescription>
+                    </div>
+                    <Checkbox
+                      checked={formData.isRegulated}
+                      onCheckedChange={(checked) => updateFormData('isRegulated', checked)}
+                    />
                   </div>
-                  <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                    <div>
-                      <h4 className="font-semibold mb-2">Personal Information</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-muted-foreground">Name:</span> {formData.ownerFullName}</p>
-                        <p><span className="text-muted-foreground">ID Number:</span> {formData.idNumber}</p>
-                        {formData.dob && (
-                          <p><span className="text-muted-foreground">Date of Birth:</span> {new Date(formData.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                        )}
-                        <p><span className="text-muted-foreground">Phone:</span> {formData.phone}</p>
-                        <p><span className="text-muted-foreground">Email:</span> {formData.email || registrationData.email}</p>
-                        <p><span className="text-muted-foreground">Gender:</span> {formData.gender}</p>
-                        <p><span className="text-muted-foreground">Race:</span> {formData.race}</p>
-                        <p><span className="text-muted-foreground">Disability Status:</span> {formData.disabilityStatus}</p>
-                      </div>
+
+                  {formData.isRegulated && (
+                    <div className="flex flex-wrap gap-2">
+                      {['Food Safety', 'Health', 'Financial', 'Transport', 'Education', 'Energy/ENV'].map(reg => (
+                        <Badge key={reg} variant="outline">{reg}</Badge>
+                      ))}
                     </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-semibold mb-2">Business Details</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-muted-foreground">Business Name:</span> {formData.businessName}</p>
-                        <p><span className="text-muted-foreground">Business Type:</span> {formData.businessType}</p>
-                        <p><span className="text-muted-foreground">Industry:</span> {formData.industry}</p>
-                        {formData.companyRegistrationNumber && (
-                          <p><span className="text-muted-foreground">Registration Number:</span> {formData.companyRegistrationNumber}</p>
-                        )}
-                      </div>
+                      <FieldLabel>Do you export?</FieldLabel>
+                      <FieldDescription>Sell products/services outside South Africa</FieldDescription>
                     </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Business Metrics</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-muted-foreground">Annual Revenue:</span> {REVENUE_RANGES.find(r => r.value === formData.annualRevenue)?.label}</p>
-                        <p><span className="text-muted-foreground">Employees:</span> {EMPLOYEE_RANGES.find(e => e.value === formData.numberOfEmployees)?.label}</p>
-                        {formData.beeLevel && (
-                          <p><span className="text-muted-foreground">BEE Level:</span> {formData.beeLevel}</p>
-                        )}
-                      </div>
+                    <Checkbox
+                      checked={formData.doYouExport}
+                      onCheckedChange={(checked) => updateFormData('doYouExport', checked)}
+                    />
+                  </div>
+
+                  <Field>
+                    <FieldLabel>How seasonal is your business?</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {['None', 'Low', 'Medium', 'High'].map(option => (
+                        <Badge
+                          key={option}
+                          variant={formData.seasonality === option ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => updateFormData('seasonality', option)}
+                        >
+                          {option}
+                        </Badge>
+                      ))}
                     </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Funding Requirements</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><span className="text-muted-foreground">Amount Needed:</span> {REVENUE_RANGES.find(r => r.value === formData.fundingAmountNeeded)?.label}</p>
-                        <p><span className="text-muted-foreground">Timeline:</span> {TIMELINE_OPTIONS.find(t => t.value === formData.timeline)?.label}</p>
-                        <p><span className="text-muted-foreground">Funding Types:</span> {formData.fundingTypes.join(', ') || 'None'}</p>
-                        <p><span className="text-muted-foreground">Purpose:</span> {formData.purposeOfFunding}</p>
-                        {fundingCategoryLoading ? (
-                          <div className="mt-3 pt-3 border-t">
-                            <p className="text-muted-foreground italic">
-                              <span className="text-muted-foreground">Funding Category:</span> Processing...
-                            </p>
-                          </div>
-                        ) : fundingCategory.primary_category ? (
-                          <div className="mt-3 pt-3 border-t bg-primary/5 rounded-md p-3">
-                            <p className="font-semibold mb-2 text-primary">Funding Category (AI-Determined)</p>
-                            <p className="mb-1"><span className="text-muted-foreground">Category:</span> <span className="font-medium">{fundingCategory.primary_category}</span></p>
-                            {fundingCategory.confidence > 0 && (
-                              <p className="mb-1"><span className="text-muted-foreground">Confidence:</span> <span className="font-medium">{Math.round(fundingCategory.confidence * 100)}%</span></p>
-                            )}
-                            {fundingCategory.explanation && (
-                              <p className="mt-2 text-sm"><span className="text-muted-foreground">Explanation:</span> {fundingCategory.explanation}</p>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
+                  </Field>
+                </div>
+
+                <Button variant="ghost" className="w-full">
+                  + Add secondary industry (optional)
+                </Button>
+              </div>
+
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold mb-1">Why we need your location</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Many funding programs have specific geographic requirements. Your location helps us show you relevant opportunities in your area.
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex items-center justify-between mt-6 pt-6 border-t">
-                <div>
-                  {currentStep > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleBack}
-                      disabled={loading}
+              <div className="flex justify-between pt-4">
+                <Button variant="outline" onClick={handleBack}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button onClick={handleNext} disabled={!formData.industry}>
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 3: Funding Needs
+  if (currentStep === 3) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
+        <div className="max-w-4xl mx-auto pt-8">
+          <StepTimeline currentStep={currentStep} />
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold mb-2">Tell us about your funding needs</h1>
+          </div>
+
+          <Card className="w-full">
+            <CardContent className="p-8 space-y-8">
+              {/* Funding Amount */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">How much funding do you need?</h2>
+                  <Info className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="text-center p-6 border-2 border-dashed rounded-lg">
+                  <div className="text-4xl font-bold text-purple-600 mb-2">
+                    R {formData.fundingAmount.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Type an amount or use the slider below</p>
+                </div>
+                <Input
+                  type="number"
+                  value={formData.fundingAmount}
+                  onChange={(e) => updateFormData('fundingAmount', parseInt(e.target.value) || 0)}
+                  className="text-center text-2xl"
+                />
+                <input
+                  type="range"
+                  min="10000"
+                  max="100000000"
+                  step="10000"
+                  value={formData.fundingAmount}
+                  onChange={(e) => updateFormData('fundingAmount', parseInt(e.target.value))}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>R10k</span>
+                  <span>R100k</span>
+                  <span>R500k</span>
+                  <span>R1m</span>
+                  <span>R5m</span>
+                  <span>R25m</span>
+                  <span>R100m</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-blue-600">
+                  <Info className="w-4 h-4" />
+                  <span>Selected amount falls in the range: R90k - R110k</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Lightbulb className="w-4 h-4" />
+                  <span>Tip: Rounded estimates are fine. You can refine this later based on the funding options available to you.</span>
+                </div>
+              </div>
+
+              {/* Timeline */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">When do you need the funding?</h2>
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {TIMELINE_OPTIONS.map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => updateFormData('fundingTimeline', option.value)}
+                      className={cn(
+                        "p-4 rounded-lg border-2 text-left transition-all",
+                        formData.fundingTimeline === option.value
+                          ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                          : "border-border hover:border-purple-300"
+                      )}
                     >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
+                      <div className="font-semibold mb-1">{option.label}</div>
+                      <div className="text-xs text-muted-foreground">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Funding Purposes */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">What do you need the funding for?</h2>
+                  <Lightbulb className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">Pick one or more purposes. Add details if helpful.</p>
+                
+                <div>
+                  <FieldLabel>Primary purpose(s) *</FieldLabel>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.fundingPurposes.map(purpose => (
+                      <Badge key={purpose} variant="default" className="gap-1">
+                        {purpose}
+                        <X
+                          className="w-3 h-3 cursor-pointer"
+                          onClick={() => {
+                            updateFormData('fundingPurposes', formData.fundingPurposes.filter(p => p !== purpose))
+                          }}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
+                  {formData.fundingPurposes.length >= 3 && (
+                    <p className="text-sm text-muted-foreground mt-2">Maximum reached — remove one to add another</p>
+                  )}
+                  {formData.fundingPurposes.length < 3 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {FUNDING_PURPOSES.filter(p => !formData.fundingPurposes.includes(p)).map(purpose => (
+                        <Badge
+                          key={purpose}
+                          variant="outline"
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (formData.fundingPurposes.length < 3) {
+                              updateFormData('fundingPurposes', [...formData.fundingPurposes, purpose])
+                            }
+                          }}
+                        >
+                          {purpose}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <div className="text-xs text-muted-foreground mt-2 text-right">
+                    {formData.fundingPurposes.length} of 3 max
+                  </div>
+                </div>
+
+                <Field>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FieldLabel>Additional details (optional)</FieldLabel>
+                    <Info className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <textarea
+                    value={formData.fundingDetails}
+                    onChange={(e) => updateFormData('fundingDetails', e.target.value)}
+                    placeholder="E.g., R250k for refrigerated delivery van in KZN + R120k winter stock; POS upgrade for card acceptance."
+                    className="w-full min-h-[100px] p-3 border rounded-md"
+                    maxLength={400}
+                  />
+                  <div className="flex justify-between mt-1">
+                    <FieldDescription>AI will extract key details to improve matching</FieldDescription>
+                    <span className="text-xs text-muted-foreground">{formData.fundingDetails.length}/400</span>
+                  </div>
+                </Field>
+              </div>
+
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Shield className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold mb-1">Building your funding profile</h4>
+                    <p className="text-sm text-muted-foreground">
+                      These details help us match you with the most suitable funding options. You can always refine them later.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button variant="outline" onClick={handleBack}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                <Button onClick={() => setCurrentStep(4)} disabled={!formData.fundingTimeline || formData.fundingPurposes.length === 0}>
+                  Continue
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  // Step 4: Detailed Assessment
+  if (currentStep === 4) {
+    const assessmentSections = [
+      { id: 1, name: 'Business & Trading', icon: Building2 },
+      { id: 2, name: 'Financial & Banking', icon: DollarSign },
+      { id: 3, name: 'Team & Compliance', icon: Users },
+      { id: 4, name: 'Preferences & Location', icon: MapPin },
+    ]
+
+    const progress = completedAssessmentSections.length + (currentAssessmentSection === 4 ? 1 : 0)
+
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
+        <div className="max-w-4xl mx-auto pt-8">
+          <StepTimeline currentStep={currentStep} />
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <CheckCircle2 className="w-6 h-6 text-purple-600" />
+              <h1 className="text-3xl font-bold">Detailed Assessment</h1>
+            </div>
+            <p className="text-muted-foreground">
+              Complete this comprehensive assessment to get the most accurate funding matches for your business.
+            </p>
+          </div>
+
+          <Card className="w-full">
+            <CardContent className="p-8">
+              <div className="mb-6">
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Assessment Progress</span>
+                  <span>{progress} of 4 sections</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-purple-600 h-2 rounded-full transition-all"
+                    style={{ width: `${(progress / 4) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mb-8 overflow-x-auto">
+                {assessmentSections.map((section) => {
+                  const Icon = section.icon
+                  const isCompleted = completedAssessmentSections.includes(section.id)
+                  const isActive = currentAssessmentSection === section.id
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setCurrentAssessmentSection(section.id)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap",
+                        isActive && "border-purple-500 bg-purple-50 dark:bg-purple-900/20",
+                        !isActive && !isCompleted && "border-border",
+                        isCompleted && !isActive && "border-green-500 bg-green-50 dark:bg-green-900/20"
+                      )}
+                    >
+                      {isCompleted && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{section.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Section 1: Business & Trading */}
+              {currentAssessmentSection === 1 && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold">Business & Trading</h2>
+                  <p className="text-muted-foreground">Tell us about your business model and customers</p>
+
+                  <Field>
+                    <FieldLabel>Who are your main customers?</FieldLabel>
+                    <Select value={formData.mainCustomers} onValueChange={(value) => updateFormData('mainCustomers', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="consumers">Consumers (B2C)</SelectItem>
+                        <SelectItem value="businesses">Other businesses (B2B)</SelectItem>
+                        <SelectItem value="government">Government/SoEs</SelectItem>
+                        <SelectItem value="mixed">Mixed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  {formData.mainCustomers === 'businesses' && (
+                    <Card className="bg-muted/50">
+                      <CardContent className="p-4 space-y-4">
+                        <h3 className="font-semibold">Business Customer Details</h3>
+                        <Field>
+                          <FieldLabel>How many customers do you serve monthly?</FieldLabel>
+                          <Select value={formData.monthlyCustomers} onValueChange={(value) => updateFormData('monthlyCustomers', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select range" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1-10">1-10 customers</SelectItem>
+                              <SelectItem value="11-50">11-50 customers</SelectItem>
+                              <SelectItem value="51-100">51-100 customers</SelectItem>
+                              <SelectItem value="100+">100+ customers</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>What % of revenue comes from your biggest customer?</FieldLabel>
+                          <Select value={formData.revenueFromBiggestCustomer} onValueChange={(value) => updateFormData('revenueFromBiggestCustomer', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select percentage" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0-10">0-10%</SelectItem>
+                              <SelectItem value="11-25">11-25%</SelectItem>
+                              <SelectItem value="26-50">26-50%</SelectItem>
+                              <SelectItem value="50+">50%+</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>How quickly do customers usually pay you?</FieldLabel>
+                          <Select value={formData.customerPaymentSpeed} onValueChange={(value) => updateFormData('customerPaymentSpeed', value)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select timeframe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="immediate">Immediate</SelectItem>
+                              <SelectItem value="7-days">7 days</SelectItem>
+                              <SelectItem value="30-days">30 days</SelectItem>
+                              <SelectItem value="60-days">60 days</SelectItem>
+                              <SelectItem value="90+">90+ days</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Average days to get paid (if known)</FieldLabel>
+                          <Input
+                            type="number"
+                            value={formData.averageDaysToGetPaid}
+                            onChange={(e) => updateFormData('averageDaysToGetPaid', e.target.value)}
+                            placeholder="45"
+                          />
+                        </Field>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Field>
+                    <FieldLabel>How do customers pay you?</FieldLabel>
+                    <FieldDescription>Choose all that apply. Add detail for better matches.</FieldDescription>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {['Card', 'Cash', 'Mobile / App / QR', 'Debit Orders', 'Instant EFT / Pay-by-link', 'EFT / Bank Transfer'].map(method => (
+                        <Badge
+                          key={method}
+                          variant={formData.paymentMethods.includes(method) ? 'default' : 'outline'}
+                          className="cursor-pointer gap-1"
+                          onClick={() => {
+                            const newMethods = formData.paymentMethods.includes(method)
+                              ? formData.paymentMethods.filter(m => m !== method)
+                              : [...formData.paymentMethods, method]
+                            updateFormData('paymentMethods', newMethods)
+                          }}
+                        >
+                          {method}
+                          {formData.paymentMethods.includes(method) && (
+                            <X className="w-3 h-3" />
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Field>
+
+                  {formData.paymentMethods.includes('Card') && (
+                    <Card className="bg-muted/50">
+                      <CardContent className="p-4 space-y-4">
+                        <h3 className="font-semibold">Card details</h3>
+                        <Field>
+                          <FieldLabel>POS/Acquirer</FieldLabel>
+                          <div className="flex flex-wrap gap-2">
+                            {['FNB', 'Nedbank', 'iKhokha', 'Yoco', 'SnapScan', 'Adumo', 'Absa', 'Capitec', 'Peach', 'Other'].map(provider => (
+                              <Badge
+                                key={provider}
+                                variant={formData.posAcquirers.includes(provider) ? 'default' : 'outline'}
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  const newProviders = formData.posAcquirers.includes(provider)
+                                    ? formData.posAcquirers.filter(p => p !== provider)
+                                    : [...formData.posAcquirers, provider]
+                                  updateFormData('posAcquirers', newProviders)
+                                }}
+                              >
+                                {provider}
+                              </Badge>
+                            ))}
+                          </div>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Monthly card turnover</FieldLabel>
+                          <div className="flex gap-2">
+                            {['<R50k', 'R50-250k', 'R250k-R1m', 'R1-3m', '>R3m'].map(range => (
+                              <Badge
+                                key={range}
+                                variant={formData.monthlyCardTurnover === range ? 'default' : 'outline'}
+                                className="cursor-pointer"
+                                onClick={() => updateFormData('monthlyCardTurnover', range)}
+                              >
+                                {range}
+                              </Badge>
+                            ))}
+                          </div>
+                        </Field>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {formData.paymentMethods.includes('EFT / Bank Transfer') && (
+                    <Card className="bg-muted/50">
+                      <CardContent className="p-4 space-y-4">
+                        <h3 className="font-semibold">EFT details</h3>
+                        <Field>
+                          <FieldLabel>Do you issue invoices?</FieldLabel>
+                          <div className="flex gap-4">
+                            <Badge
+                              variant={formData.issueInvoices === 'yes' ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => updateFormData('issueInvoices', 'yes')}
+                            >
+                              Yes
+                            </Badge>
+                            <Badge
+                              variant={formData.issueInvoices === 'no' ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => updateFormData('issueInvoices', 'no')}
+                            >
+                              No
+                            </Badge>
+                          </div>
+                        </Field>
+                        <Field>
+                          <FieldLabel>% from largest customer</FieldLabel>
+                          <div className="flex gap-2">
+                            {['<20%', '20-40%', '40-60%', '>60%'].map(percent => (
+                              <Badge
+                                key={percent}
+                                variant={formData.percentFromLargestCustomer === percent ? 'default' : 'outline'}
+                                className="cursor-pointer"
+                                onClick={() => updateFormData('percentFromLargestCustomer', percent)}
+                              >
+                                {percent}
+                              </Badge>
+                            ))}
+                          </div>
+                        </Field>
+                        <Field>
+                          <FieldLabel>Typical payment terms</FieldLabel>
+                          <div className="flex gap-2">
+                            {['0-15 days', '30 days', '45 days', '60+ days'].map(term => (
+                              <Badge
+                                key={term}
+                                variant={formData.typicalPaymentTerms === term ? 'default' : 'outline'}
+                                className="cursor-pointer"
+                                onClick={() => updateFormData('typicalPaymentTerms', term)}
+                              >
+                                {term}
+                              </Badge>
+                            ))}
+                          </div>
+                        </Field>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {formData.paymentMethods.includes('Mobile / App / QR') && (
+                    <Card className="bg-muted/50">
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold mb-4">Wallet/QR provider</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {['SnapScan', 'Zapper', 'Apple Pay', 'Samsung Pay', 'Ozow', 'PayFast', 'Other'].map(provider => (
+                            <Badge
+                              key={provider}
+                              variant={formData.walletProviders.includes(provider) ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => {
+                                const newProviders = formData.walletProviders.includes(provider)
+                                  ? formData.walletProviders.filter(p => p !== provider)
+                                  : [...formData.walletProviders, provider]
+                                updateFormData('walletProviders', newProviders)
+                              }}
+                            >
+                              {provider}
+                            </Badge>
+                          ))}
+                        </div>
+                        <Button variant="ghost" className="mt-2 text-sm">+ Add % split (optional)</Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Section 2: Financial & Banking */}
+              {currentAssessmentSection === 2 && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold">Financial & Banking</h2>
+                  <p className="text-muted-foreground">Your business finances and money flow</p>
+
+                  <div>
+                    <FieldLabel className="mb-4 block">Where does your money go?</FieldLabel>
+                    <FieldDescription className="mb-4">This helps match you with suitable funders</FieldDescription>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        onClick={() => updateFormData('moneyGoesTo', 'bank')}
+                        className={cn(
+                          "p-6 rounded-lg border-2 text-left transition-all",
+                          formData.moneyGoesTo === 'bank'
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                            : "border-border hover:border-green-300"
+                        )}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <Building2 className="w-8 h-8 text-green-600" />
+                          {formData.moneyGoesTo === 'bank' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                        </div>
+                        <h3 className="font-semibold">I bank my money</h3>
+                      </button>
+                      <button
+                        onClick={() => updateFormData('moneyGoesTo', 'cash')}
+                        className={cn(
+                          "p-6 rounded-lg border-2 text-left transition-all",
+                          formData.moneyGoesTo === 'cash'
+                            ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                            : "border-border hover:border-green-300"
+                        )}
+                      >
+                        <Banknote className="w-8 h-8 text-green-600 mb-2" />
+                        <h3 className="font-semibold">Mostly cash-based</h3>
+                      </button>
+                    </div>
+                    {formData.moneyGoesTo === 'bank' && (
+                      <div className="mt-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                            Great! You have access to the widest range of funding options.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <Field>
+                    <FieldLabel>Which bank do you use?</FieldLabel>
+                    <Select value={formData.bank} onValueChange={(value) => updateFormData('bank', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fnb">FNB</SelectItem>
+                        <SelectItem value="absa">Absa</SelectItem>
+                        <SelectItem value="nedbank">Nedbank</SelectItem>
+                        <SelectItem value="standard-bank">Standard Bank</SelectItem>
+                        <SelectItem value="capitec">Capitec</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>How long have you had this account?</FieldLabel>
+                    <Select value={formData.accountDuration} onValueChange={(value) => updateFormData('accountDuration', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="less-than-1">Less than 1 year</SelectItem>
+                        <SelectItem value="1-2-years">1-2 years</SelectItem>
+                        <SelectItem value="3-5-years">3-5 years</SelectItem>
+                        <SelectItem value="more-than-5">More than 5 years</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>What's your monthly income/revenue?</FieldLabel>
+                    <Select value={formData.monthlyIncomeRange} onValueChange={(value) => updateFormData('monthlyIncomeRange', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="under-10k">Under R10,000</SelectItem>
+                        <SelectItem value="10k-25k">R10,000 - R25,000</SelectItem>
+                        <SelectItem value="25k-50k">R25,000 - R50,000</SelectItem>
+                        <SelectItem value="50k-100k">R50,000 - R100,000</SelectItem>
+                        <SelectItem value="100k-250k">R100,000 - R250,000</SelectItem>
+                        <SelectItem value="250k-500k">R250,000 - R500,000</SelectItem>
+                        <SelectItem value="500k+">R500,000+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Exact monthly income (optional)</FieldLabel>
+                    <Input
+                      type="number"
+                      value={formData.exactMonthlyIncome}
+                      onChange={(e) => updateFormData('exactMonthlyIncome', e.target.value)}
+                      placeholder="150000"
+                    />
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>How do you track your finances?</FieldLabel>
+                    <Select value={formData.trackFinances} onValueChange={(value) => updateFormData('trackFinances', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="excel">Excel or Google Sheets</SelectItem>
+                        <SelectItem value="accounting-software">Accounting software (Xero, QuickBooks, etc.)</SelectItem>
+                        <SelectItem value="bank-statements">Bank statements only</SelectItem>
+                        <SelectItem value="accountant">Accountant/bookkeeper</SelectItem>
+                        <SelectItem value="none">I don't track</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              )}
+
+              {/* Section 3: Team & Compliance */}
+              {currentAssessmentSection === 3 && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold">Team & Compliance</h2>
+                  <p className="text-muted-foreground">About your team and business compliance status</p>
+
+                  <Field>
+                    <FieldLabel>How many people work in your business?</FieldLabel>
+                    <Select value={formData.numberOfEmployees} onValueChange={(value) => updateFormData('numberOfEmployees', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select range" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="just-me">Just me</SelectItem>
+                        <SelectItem value="2-5">2-5 people</SelectItem>
+                        <SelectItem value="6-10">6-10 people</SelectItem>
+                        <SelectItem value="11-20">11-20 people</SelectItem>
+                        <SelectItem value="21-50">21-50 people</SelectItem>
+                        <SelectItem value="50+">50+ people</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>What stage is your business at?</FieldLabel>
+                    <Select value={formData.businessStage} onValueChange={(value) => updateFormData('businessStage', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select stage" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="idea">Idea stage</SelectItem>
+                        <SelectItem value="early">Early stage</SelectItem>
+                        <SelectItem value="established">Well established</SelectItem>
+                        <SelectItem value="scaling">Scaling</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>What's your background as the owner/founder?</FieldLabel>
+                    <FieldDescription>Choose up to 2 that best describe you</FieldDescription>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {['Technical/Engineering', 'Commercial/Sales/Marketing', 'Operations/Supply Chain', 'Finance/Accounting', 'Legal/Compliance/Risk', 'Product/UX/Design', 'Industry Specialist', 'Non-profit/Social Enterprise', 'Academic/Research', 'Franchise Owner/Operator', 'Trader/Informal Retail/Spaza', 'Agriculture/Farming', 'First-time Founder', 'Serial Entrepreneur'].map(bg => (
+                        <Badge
+                          key={bg}
+                          variant={formData.ownerBackground.includes(bg) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (formData.ownerBackground.includes(bg)) {
+                              updateFormData('ownerBackground', formData.ownerBackground.filter(b => b !== bg))
+                            } else if (formData.ownerBackground.length < 2) {
+                              updateFormData('ownerBackground', [...formData.ownerBackground, bg])
+                            }
+                          }}
+                        >
+                          {bg}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      Selected: {formData.ownerBackground.length}/2
+                    </div>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Demographics (helps match you to specialized funding)</FieldLabel>
+                    <FieldDescription>Select all that apply to your business ownership</FieldDescription>
+                    <div className="space-y-2 mt-2">
+                      {[
+                        { id: 'youth', label: 'Youth-owned (18-35 years)' },
+                        { id: 'rural', label: 'Based in rural area or township' },
+                        { id: 'coloured', label: 'Coloured-owned (51%+ Coloured ownership)' },
+                        { id: 'disability', label: 'Disability-owned (51%+ people with disabilities)' },
+                        { id: 'women', label: 'Women-owned (51%+ women ownership)' },
+                        { id: 'black', label: 'Black-owned (51%+ Black ownership)' },
+                        { id: 'indian', label: 'Indian-owned (51%+ Indian ownership)' },
+                      ].map(demo => (
+                        <div key={demo.id} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={formData.demographics.includes(demo.id)}
+                            onCheckedChange={(checked) => {
+                              const newDemos = checked
+                                ? [...formData.demographics, demo.id]
+                                : formData.demographics.filter(d => d !== demo.id)
+                              updateFormData('demographics', newDemos)
+                            }}
+                          />
+                          <Label>{demo.label}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Are you up to date with SARS?</FieldLabel>
+                    <Select value={formData.sarsStatus} onValueChange={(value) => updateFormData('sarsStatus', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="up-to-date">Yes, I'm up to date</SelectItem>
+                        <SelectItem value="behind">No, I'm behind on tax</SelectItem>
+                        <SelectItem value="not-registered">Not registered</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Are you VAT registered?</FieldLabel>
+                    <Select value={formData.vatRegistered} onValueChange={(value) => updateFormData('vatRegistered', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Do you have a B-BBEE certificate?</FieldLabel>
+                    <Select value={formData.bbbeeLevel} onValueChange={(value) => updateFormData('bbbeeLevel', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="level-1">Level 1</SelectItem>
+                        <SelectItem value="level-2">Level 2</SelectItem>
+                        <SelectItem value="level-3">Level 3</SelectItem>
+                        <SelectItem value="level-4">Level 4</SelectItem>
+                        <SelectItem value="level-5">Level 5</SelectItem>
+                        <SelectItem value="level-6">Level 6</SelectItem>
+                        <SelectItem value="level-7">Level 7</SelectItem>
+                        <SelectItem value="level-8">Level 8</SelectItem>
+                        <SelectItem value="none">Not certified</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>What financial documents do you have?</FieldLabel>
+                    <FieldDescription>Select all documents you can provide</FieldDescription>
+                    <div className="space-y-2 mt-2">
+                      {[
+                        '3-month bank statements',
+                        'Audited financial statements',
+                        'Tax returns',
+                        'Monthly financial summaries',
+                        'Customer contracts or purchase orders',
+                        "I don't have any of these documents",
+                      ].map(doc => (
+                        <div key={doc} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={formData.financialDocuments.includes(doc)}
+                            onCheckedChange={(checked) => {
+                              const newDocs = checked
+                                ? [...formData.financialDocuments, doc]
+                                : formData.financialDocuments.filter(d => d !== doc)
+                              updateFormData('financialDocuments', newDocs)
+                            }}
+                          />
+                          <Label>{doc}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </Field>
+                </div>
+              )}
+
+              {/* Section 4: Preferences & Location */}
+              {currentAssessmentSection === 4 && (
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold">Funding Preferences & Location</h2>
+                  <p className="text-muted-foreground">Your preferred funding terms and business location</p>
+
+                  <Field>
+                    <FieldLabel>How often would you prefer to repay funding?</FieldLabel>
+                    <Select value={formData.repaymentFrequency} onValueChange={(value) => updateFormData('repaymentFrequency', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                        <SelectItem value="quarterly">Quarterly</SelectItem>
+                        <SelectItem value="annually">Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>How long do you want to repay over?</FieldLabel>
+                    <Select value={formData.repaymentDuration} onValueChange={(value) => updateFormData('repaymentDuration', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0-3-months">0-3 months</SelectItem>
+                        <SelectItem value="3-6-months">3-6 months</SelectItem>
+                        <SelectItem value="6-12-months">6-12 months</SelectItem>
+                        <SelectItem value="12-24-months">12-24 months</SelectItem>
+                        <SelectItem value="24+months">24+ months</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Are you open to giving investors a share of your business?</FieldLabel>
+                    <Select value={formData.openToEquity} onValueChange={(value) => updateFormData('openToEquity', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes, I'm open to equity investment</SelectItem>
+                        <SelectItem value="no">No, I prefer debt/loans</SelectItem>
+                        <SelectItem value="maybe">Maybe, depending on terms</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Can you provide security/collateral for funding?</FieldLabel>
+                    <Select value={formData.canProvideCollateral} onValueChange={(value) => updateFormData('canProvideCollateral', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select option" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes, I have assets</SelectItem>
+                        <SelectItem value="no">No, I don't have assets</SelectItem>
+                        <SelectItem value="partial">Partial collateral available</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Which city/town is your business in?</FieldLabel>
+                    <Input
+                      value={formData.cityTown}
+                      onChange={(e) => updateFormData('cityTown', e.target.value)}
+                      placeholder="Cape Town"
+                    />
+                  </Field>
+
+                  <Field>
+                    <FieldLabel>Does your business have a specific impact focus?</FieldLabel>
+                    <Select value={formData.impactFocus} onValueChange={(value) => updateFormData('impactFocus', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select focus" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="social">Social (community, education, health)</SelectItem>
+                        <SelectItem value="environmental">Environmental</SelectItem>
+                        <SelectItem value="economic">Economic development</SelectItem>
+                        <SelectItem value="none">No specific impact focus</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription className="mt-2">
+                      Impact-focused businesses may qualify for specialized funding programs.
+                    </FieldDescription>
+                  </Field>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-6 border-t">
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setCurrentStep(3)}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Funding
+                  </Button>
+                  {currentAssessmentSection > 1 && (
+                    <Button variant="outline" onClick={handleAssessmentBack}>
+                      Previous
                     </Button>
                   )}
                 </div>
                 <div className="flex gap-2">
-                  {currentStep < STEPS.length ? (
-                    <Button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handleNext(e)
-                      }}
-                      disabled={loading}
-                    >
-                      Next
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  ) : (
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                    >
-                      {loading ? 'Creating Profile...' : 'Complete Setup'}
-                    </Button>
-                  )}
+                  <Button variant="outline" onClick={handleAssessmentNext}>
+                    Skip to Next Section
+                  </Button>
+                  <Button onClick={handleAssessmentNext}>
+                    Continue to Next Section
+                  </Button>
                 </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  // Step 5: Funding-Ready Status
+  if (currentStep === 5) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
+        <div className="max-w-4xl mx-auto pt-8">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 mb-4">
+              <Sparkles className="w-12 h-12 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-purple-600 mb-2">Great news! You're funding-ready</h1>
+            <p className="text-muted-foreground text-lg">
+              Based on your profile, we've identified 1 funding categories perfect for your business. Complete the detailed assessment to unlock specific programs and funders.
+            </p>
+          </div>
+
+          {/* Metrics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Target className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold mb-1">89%</div>
+                <div className="text-sm text-muted-foreground">Match Score</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <FileText className="w-8 h-8 text-purple-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold mb-1">1</div>
+                <div className="text-sm text-muted-foreground">Categories</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
+                <div className="text-3xl font-bold mb-1">1-2 weeks</div>
+                <div className="text-sm text-muted-foreground">Timeline</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Funding Categories */}
+          <Card className="mb-8">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                <CardTitle>Your Funding Categories</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-start justify-between p-4 border rounded-lg">
+                <div className="flex items-start gap-4">
+                  <TrendingUp className="w-8 h-8 text-green-600 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">Working Capital</h3>
+                    <p className="text-sm text-muted-foreground mb-2">Cash flow solutions for operations</p>
+                    <div className="flex items-center gap-4">
+                      <Badge variant="outline" className="text-purple-600 border-purple-600">
+                        R50k - R2M
+                      </Badge>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Zap className="w-4 h-4" />
+                        <span>72 hours</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">3 specific programs match your profile</p>
+                  </div>
+                </div>
+                <Badge className="bg-green-600">89% match</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* CTA Card */}
+          <Card className="bg-gradient-to-br from-purple-600 to-blue-600 text-white mb-8">
+            <CardContent className="p-8">
+              <div className="text-center mb-6">
+                <Target className="w-12 h-12 mx-auto mb-4 text-white" />
+                <h2 className="text-2xl font-bold mb-2">Ready to unlock specific funders?</h2>
+                <p className="text-white/90">
+                  Complete our detailed assessment to get matched with specific funding programs, application deadlines, and direct contact details.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold">50+</div>
+                  <div className="text-sm text-white/80">Active Funders</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold">15+</div>
+                  <div className="text-sm text-white/80">Your Programs</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold">5</div>
+                  <div className="text-sm text-white/80">Closing Soon</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold">92%</div>
+                  <div className="text-sm text-white/80">Success Rate</div>
+                </div>
+              </div>
+              <div className="flex gap-4 justify-center">
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-white text-purple-600 hover:bg-white/90"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Complete Assessment →
+                </Button>
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                  Save & Continue Later
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Testimonial */}
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex justify-center gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">
+                500+ SA businesses have successfully secured funding through our platform
+              </p>
+              <p className="text-sm italic text-muted-foreground">
+                "The detailed assessment helped me find grants I never knew existed" - Sarah M., Cape Town
+              </p>
+            </CardContent>
+          </Card>
+
+          <div className="text-center mt-6">
+            <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              Back to Funding
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }

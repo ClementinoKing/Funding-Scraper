@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { MessageCircle, Info, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { getCurrentSession, signUpWithEmail, signUpWithPhoneOTP, verifyPhoneOTP, setToken } from '@/lib/auth'
 import { validatePhone, normalizePhone, formatPhone, isEmail } from '@/lib/utils'
@@ -18,6 +21,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [otp, setOtp] = useState('')
   const [showOTP, setShowOTP] = useState(false)
+  const [whatsappUpdates, setWhatsappUpdates] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -478,6 +482,41 @@ export default function Register() {
                   </FieldGroup>
                 </div>
               )}
+
+              {/* WhatsApp Updates Checkbox */}
+              <div className="mt-4 p-4 sm:p-5 rounded-lg border bg-muted/30 dark:bg-muted/20 border-border/50 transition-colors hover:bg-muted/40 dark:hover:bg-muted/30">
+                <label 
+                  htmlFor="whatsapp-updates-register" 
+                  className="flex items-start gap-3 cursor-pointer min-h-[44px]"
+                >
+                  <div className="pt-0.5 flex-shrink-0">
+                    <Checkbox 
+                      id="whatsapp-updates-register" 
+                      checked={whatsappUpdates}
+                      onCheckedChange={(checked) => setWhatsappUpdates(checked)}
+                      className="h-5 w-5"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <MessageCircle className="h-5 w-5 text-[#25D366] flex-shrink-0" />
+                      <span className="text-sm font-semibold flex items-center gap-1.5">
+                        WhatsApp Updates
+                        <Info className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+                      Get instant notifications about funding matches, deadlines, and approvals
+                    </p>
+                    {whatsappUpdates && (
+                      <div className="flex items-center gap-1.5 mt-2.5 text-green-600 dark:text-green-400 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-xs font-medium">You'll never miss an opportunity!</span>
+                      </div>
+                    )}
+                  </div>
+                </label>
+              </div>
 
               <div className="mt-6">
                 <div className="flex flex-col gap-2">
