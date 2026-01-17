@@ -9,6 +9,7 @@ import { FullPageLoader } from './components/LoadingSpinner.jsx'
 const Login = lazy(() => import('./pages/Login.jsx'))
 const Register = lazy(() => import('./pages/Register.jsx'))
 const AccountCreation = lazy(() => import('./pages/AccountCreation.jsx'))
+const AccountCreationOld = lazy(() => import('./pages/AccountCreation-old.jsx'))
 const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const FundingDetail = lazy(() => import('./pages/FundingDetail.jsx'))
 const SubprogramDetail = lazy(() => import('./pages/SubprogramDetail.jsx'))
@@ -51,6 +52,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/account-creation" element={<AccountCreation />} />
+        <Route path="/account-creation-old" element={<AccountCreationOld />} />
         <Route
           path="/dashboard"
           element={

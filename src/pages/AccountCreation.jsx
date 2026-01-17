@@ -401,6 +401,16 @@ export default function AccountCreation() {
                   )
                 })}
               </div>
+              
+              <div className="mt-6 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/account-creation-old')}
+                  className="w-full"
+                >
+                  Use old account creation form
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
