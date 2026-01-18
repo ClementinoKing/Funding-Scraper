@@ -20,7 +20,7 @@ export function LoadingSpinner({ className, size = 'default', ...props }) {
 export function FullPageLoader() {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <LoadingSpinner size="xl" />
+      <span className="loader"></span>
     </div>
   )
 }
@@ -28,7 +28,7 @@ export function FullPageLoader() {
 export function InlineLoader({ className }) {
   return (
     <div className={cn('flex items-center justify-center p-4', className)}>
-      <LoadingSpinner />
+      <span className="loader"></span>
     </div>
   )
 }

@@ -22,13 +22,13 @@ export default function ProtectedRoute({ children }) {
           
           if (user) {
             const { data: profile, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('profile_completed')
-              .eq('user_id', user.id)
+              .from('onboarding_sessions')
+              .select('is_completed')
+              .eq('profile_id', user.id)
               .single()
             
             // User has a profile if profile exists and is completed
-            const profileCompleted = profile && !profileError && profile.profile_completed === true
+            const profileCompleted = profile && !profileError && profile.is_completed === true
             setHasProfile(profileCompleted)
           } else {
             setHasProfile(false)
