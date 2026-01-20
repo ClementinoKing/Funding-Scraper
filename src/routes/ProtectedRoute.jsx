@@ -25,6 +25,8 @@ export default function ProtectedRoute({ children }) {
               .from('onboarding_sessions')
               .select('is_completed')
               .eq('profile_id', user.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
               .single()
             
             // User has a profile if profile exists and is completed

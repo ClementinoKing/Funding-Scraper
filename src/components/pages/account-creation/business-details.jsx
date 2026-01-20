@@ -206,7 +206,14 @@ export default function BusinessDetails({
                   {formData.isRegulated && (
                     <div className="flex flex-wrap gap-2">
                       {['Food Safety', 'Health', 'Financial', 'Transport', 'Education', 'Energy/ENV'].map(reg => (
-                        <Badge key={reg} variant="outline">{reg}</Badge>
+                        <Badge 
+                          key={reg} 
+                          variant={formData.regulatedBy === reg ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => updateFormData('regulatedBy', reg)}
+                        >
+                          {reg}
+                          </Badge>
                       ))}
                     </div>
                   )}

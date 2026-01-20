@@ -15,6 +15,7 @@ import {
   saveFinanceAndBanking,
   saveTeamAndCompliance,
   savePreferencesAndLocation,
+  saveBusinessAndTrading,
 } from "@/services/onboarding.service";
 
 const saveProgress = (currentStep, formData) => {
@@ -30,6 +31,8 @@ const saveProgress = (currentStep, formData) => {
 
 const saveDetailedAssessmentProgress = (currentStep, formData) => {
   switch (currentStep) {
+    case 1:
+      return saveBusinessAndTrading(formData);
     case 2:
       return saveFinanceAndBanking(formData);
     case 3:
@@ -143,7 +146,10 @@ export default function AccountCreation() {
           .from("onboarding_sessions")
           .select("is_completed")
           .eq("profile_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
           .single();
+          console.log(onboarding_session);
 
         if (onboarding_session) {
           if (onboarding_session.is_completed) {

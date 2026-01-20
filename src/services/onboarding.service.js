@@ -56,7 +56,7 @@ export const saveBusinessDetails = async (formData) => {
     industry_name: formData.industry,
     // specialisation: '',
     target_consumer: formData.whoDoYouSellTo,
-    // regulator: formData.regulatedBy,
+    regulator: formData.regulatedBy,
     seasonality: formData.seasonality,
     is_export: formData.doYouExport,
     is_primary: true,
@@ -167,7 +167,6 @@ export const saveFundingNeeds = async (formData) => {
   return "Progress saved successfully";
 };
 
-// TODO: Implement the function to save detailed assessments
 export const saveBusinessAndTrading = async (formData) => {
   const {
     data: { user },
@@ -183,6 +182,44 @@ export const saveBusinessAndTrading = async (formData) => {
   if (!business) {
     throw new Error("Business profile not found");
   }
+
+  // Section 1: Business & Trading
+    // mainCustomers: "",
+    // monthlyCustomers: "",
+    // revenueFromBiggestCustomer: "",
+    // customerPaymentSpeed: "",
+    // averageDaysToGetPaid: "",
+    // paymentMethods: [],
+
+  const businessDetails = {
+    id: business.id,
+    monthly_customers: formData.monthlyCustomers,
+    revenue_from_biggest_customer: formData.revenueFromBiggestCustomer,
+    customer_payment_speed: formData.customerPaymentSpeed,
+    average_days_to_get_paid: formData.averageDaysToGetPaid,
+  }
+
+  const payment_methods = formData.paymentMethods.map((method) => ({
+    business_id: business.id,
+    ...method,
+  }));
+
+  await supabase
+      .from("payment_types")
+      .delete()
+      .eq("business_id", business.id);
+
+  await Promise.allSettled([
+    supabase
+      .from("businesses")
+      .update(businessDetails)
+      .eq("id", business.id)
+      .select(),
+    supabase
+      .from("payment_types")
+      .insert(payment_methods)
+      .select(),
+  ]);
 
   return "Progress saved successfully";
 };
@@ -316,3 +353,5 @@ export const savePreferencesAndLocation = async (formData) => {
 
   return "Progress saved successfully";
 };
+
+

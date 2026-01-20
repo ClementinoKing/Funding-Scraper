@@ -1,29 +1,12 @@
 import { cn } from "@/lib/utils";
 import {
   Building2,
-  Store,
-  Lightbulb,
-  FileText,
   CheckCircle2,
   ArrowLeft,
-  ArrowRight,
-  Search,
-  Info,
-  Target,
-  TrendingUp,
-  Clock,
-  Zap,
-  Star,
-  X,
   MapPin,
   DollarSign,
   Users,
-  Shield,
-  Wallet,
-  CreditCard,
-  Smartphone,
   Banknote,
-  Receipt,
   Sparkles,
 } from 'lucide-react'
 import StepTimeline from '@/components/pages/account-creation/step-timeline'
@@ -35,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import {Card, CardContent} from '@/components/ui/card'
 import {Checkbox} from '@/components/ui/checkbox'
 import {Label} from '@/components/ui/label'
+import BusinessTrading from "./detailed-assessment/business-trading";
 
 export default function DetailedAssessments({
     currentStep,
@@ -111,236 +95,7 @@ export default function DetailedAssessments({
 
               {/* Section 1: Business & Trading */}
               {currentAssessmentSection === 1 && (
-                <div className="space-y-6">
-                  <h2 className="text-xl font-semibold">Business & Trading</h2>
-                  <p className="text-muted-foreground">Tell us about your business model and customers</p>
-
-                  <Field>
-                    <FieldLabel>Who are your main customers?</FieldLabel>
-                    <Select value={formData.mainCustomers} onValueChange={(value) => updateFormData('mainCustomers', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select option" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="consumers">Consumers (B2C)</SelectItem>
-                        <SelectItem value="businesses">Other businesses (B2B)</SelectItem>
-                        <SelectItem value="government">Government/SoEs</SelectItem>
-                        <SelectItem value="mixed">Mixed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-
-                  {formData.mainCustomers === 'businesses' && (
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 space-y-4">
-                        <h3 className="font-semibold">Business Customer Details</h3>
-                        <Field>
-                          <FieldLabel>How many customers do you serve monthly?</FieldLabel>
-                          <Select value={formData.monthlyCustomers} onValueChange={(value) => updateFormData('monthlyCustomers', value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select range" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1-10">1-10 customers</SelectItem>
-                              <SelectItem value="11-50">11-50 customers</SelectItem>
-                              <SelectItem value="51-100">51-100 customers</SelectItem>
-                              <SelectItem value="100+">100+ customers</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        <Field>
-                          <FieldLabel>What % of revenue comes from your biggest customer?</FieldLabel>
-                          <Select value={formData.revenueFromBiggestCustomer} onValueChange={(value) => updateFormData('revenueFromBiggestCustomer', value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select percentage" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0-10">0-10%</SelectItem>
-                              <SelectItem value="11-25">11-25%</SelectItem>
-                              <SelectItem value="26-50">26-50%</SelectItem>
-                              <SelectItem value="50+">50%+</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        <Field>
-                          <FieldLabel>How quickly do customers usually pay you?</FieldLabel>
-                          <Select value={formData.customerPaymentSpeed} onValueChange={(value) => updateFormData('customerPaymentSpeed', value)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select timeframe" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="immediate">Immediate</SelectItem>
-                              <SelectItem value="7-days">7 days</SelectItem>
-                              <SelectItem value="30-days">30 days</SelectItem>
-                              <SelectItem value="60-days">60 days</SelectItem>
-                              <SelectItem value="90+">90+ days</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Average days to get paid (if known)</FieldLabel>
-                          <Input
-                            type="number"
-                            value={formData.averageDaysToGetPaid}
-                            onChange={(e) => updateFormData('averageDaysToGetPaid', e.target.value)}
-                            placeholder="45"
-                          />
-                        </Field>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <Field>
-                    <FieldLabel>How do customers pay you?</FieldLabel>
-                    <FieldDescription>Choose all that apply. Add detail for better matches.</FieldDescription>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {['Card', 'Cash', 'Mobile / App / QR', 'Debit Orders', 'Instant EFT / Pay-by-link', 'EFT / Bank Transfer'].map(method => (
-                        <Badge
-                          key={method}
-                          variant={formData.paymentMethods.includes(method) ? 'default' : 'outline'}
-                          className="cursor-pointer gap-1"
-                          onClick={() => {
-                            const newMethods = formData.paymentMethods.includes(method)
-                              ? formData.paymentMethods.filter(m => m !== method)
-                              : [...formData.paymentMethods, method]
-                            updateFormData('paymentMethods', newMethods)
-                          }}
-                        >
-                          {method}
-                          {formData.paymentMethods.includes(method) && (
-                            <X className="w-3 h-3" />
-                          )}
-                        </Badge>
-                      ))}
-                    </div>
-                  </Field>
-
-                  {formData.paymentMethods.includes('Card') && (
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 space-y-4">
-                        <h3 className="font-semibold">Card details</h3>
-                        <Field>
-                          <FieldLabel>POS/Acquirer</FieldLabel>
-                          <div className="flex flex-wrap gap-2">
-                            {['FNB', 'Nedbank', 'iKhokha', 'Yoco', 'SnapScan', 'Adumo', 'Absa', 'Capitec', 'Peach', 'Other'].map(provider => (
-                              <Badge
-                                key={provider}
-                                variant={formData.posAcquirers.includes(provider) ? 'default' : 'outline'}
-                                className="cursor-pointer"
-                                onClick={() => {
-                                  const newProviders = formData.posAcquirers.includes(provider)
-                                    ? formData.posAcquirers.filter(p => p !== provider)
-                                    : [...formData.posAcquirers, provider]
-                                  updateFormData('posAcquirers', newProviders)
-                                }}
-                              >
-                                {provider}
-                              </Badge>
-                            ))}
-                          </div>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Monthly card turnover</FieldLabel>
-                          <div className="flex gap-2">
-                            {['<R50k', 'R50-250k', 'R250k-R1m', 'R1-3m', '>R3m'].map(range => (
-                              <Badge
-                                key={range}
-                                variant={formData.monthlyCardTurnover === range ? 'default' : 'outline'}
-                                className="cursor-pointer"
-                                onClick={() => updateFormData('monthlyCardTurnover', range)}
-                              >
-                                {range}
-                              </Badge>
-                            ))}
-                          </div>
-                        </Field>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {formData.paymentMethods.includes('EFT / Bank Transfer') && (
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4 space-y-4">
-                        <h3 className="font-semibold">EFT details</h3>
-                        <Field>
-                          <FieldLabel>Do you issue invoices?</FieldLabel>
-                          <div className="flex gap-4">
-                            <Badge
-                              variant={formData.issueInvoices === 'yes' ? 'default' : 'outline'}
-                              className="cursor-pointer"
-                              onClick={() => updateFormData('issueInvoices', 'yes')}
-                            >
-                              Yes
-                            </Badge>
-                            <Badge
-                              variant={formData.issueInvoices === 'no' ? 'default' : 'outline'}
-                              className="cursor-pointer"
-                              onClick={() => updateFormData('issueInvoices', 'no')}
-                            >
-                              No
-                            </Badge>
-                          </div>
-                        </Field>
-                        <Field>
-                          <FieldLabel>% from largest customer</FieldLabel>
-                          <div className="flex gap-2">
-                            {['<20%', '20-40%', '40-60%', '>60%'].map(percent => (
-                              <Badge
-                                key={percent}
-                                variant={formData.percentFromLargestCustomer === percent ? 'default' : 'outline'}
-                                className="cursor-pointer"
-                                onClick={() => updateFormData('percentFromLargestCustomer', percent)}
-                              >
-                                {percent}
-                              </Badge>
-                            ))}
-                          </div>
-                        </Field>
-                        <Field>
-                          <FieldLabel>Typical payment terms</FieldLabel>
-                          <div className="flex gap-2">
-                            {['0-15 days', '30 days', '45 days', '60+ days'].map(term => (
-                              <Badge
-                                key={term}
-                                variant={formData.typicalPaymentTerms === term ? 'default' : 'outline'}
-                                className="cursor-pointer"
-                                onClick={() => updateFormData('typicalPaymentTerms', term)}
-                              >
-                                {term}
-                              </Badge>
-                            ))}
-                          </div>
-                        </Field>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {formData.paymentMethods.includes('Mobile / App / QR') && (
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4">
-                        <h3 className="font-semibold mb-4">Wallet/QR provider</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {['SnapScan', 'Zapper', 'Apple Pay', 'Samsung Pay', 'Ozow', 'PayFast', 'Other'].map(provider => (
-                            <Badge
-                              key={provider}
-                              variant={formData.walletProviders.includes(provider) ? 'default' : 'outline'}
-                              className="cursor-pointer"
-                              onClick={() => {
-                                const newProviders = formData.walletProviders.includes(provider)
-                                  ? formData.walletProviders.filter(p => p !== provider)
-                                  : [...formData.walletProviders, provider]
-                                updateFormData('walletProviders', newProviders)
-                              }}
-                            >
-                              {provider}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Button variant="ghost" className="mt-2 text-sm">+ Add % split (optional)</Button>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <BusinessTrading formData={formData} updateFormData={updateFormData} />
               )}
 
               {/* Section 2: Financial & Banking */}
