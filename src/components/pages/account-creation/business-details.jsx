@@ -31,7 +31,6 @@ import {
 import StepTimeline from '@/components/pages/account-creation/step-timeline'
 
 export default function BusinessDetails({
-  currentStep,
   handleNext,
   handleBack,
   formData,
@@ -40,7 +39,6 @@ export default function BusinessDetails({
   return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
         <div className="max-w-4xl mx-auto pt-8">
-          <StepTimeline currentStep={currentStep} />
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold mb-2">Tell us about your business</h1>
           </div>
@@ -51,7 +49,7 @@ export default function BusinessDetails({
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-purple-600" />
+                      <Building2 className="w-5 h-5 text-indigo-600" />
                       Registered Company Details
                     </h2>
                     <Button variant="ghost" size="sm">Change</Button>
@@ -63,7 +61,7 @@ export default function BusinessDetails({
                       <Input
                         value={formData.companyRegistrationNumber}
                         onChange={(e) => updateFormData('companyRegistrationNumber', e.target.value)}
-                        placeholder="3243521324353423112"
+                        placeholder="3243521324323112"
                       />
                       <Button variant="outline">
                         <Search className="w-4 h-4 mr-2" />
@@ -81,18 +79,18 @@ export default function BusinessDetails({
                       <Input
                         value={formData.businessName}
                         onChange={(e) => updateFormData('businessName', e.target.value)}
-                        placeholder="Thabo Pty Ltd"
+                        placeholder="ABC Pty Ltd"
                       />
-                      {formData.businessName && (
+                      {/* {formData.businessName && (
                         <div className="flex items-center gap-1 mt-2 text-green-600">
                           <CheckCircle2 className="w-4 h-4" />
                           <span className="text-sm">Verified with CIPC</span>
                         </div>
-                      )}
+                      )} */}
                     </div>
                   </Field>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field>
                       <FieldLabel>Province *</FieldLabel>
                       <Select value={formData.province} onValueChange={(value) => updateFormData('province', value)}>
@@ -125,6 +123,32 @@ export default function BusinessDetails({
                     <Label>Different trading address?</Label>
                   </div>
                   <FieldDescription>If you operate from a different location.</FieldDescription>
+
+                  <div className={"grid grid-cols-1 md:grid-cols-2 gap-4 bg-primary-foreground border p-4 rounded " + (formData.differentTradingAddress ? "" : "hidden")}>
+                    <Field>
+                      <FieldLabel>Trading Province</FieldLabel>
+                      <Select value={formData.secondaryProvince} onValueChange={(value) => updateFormData('secondaryProvince', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select province" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PROVINCES.map(province => (
+                            <SelectItem key={province} value={province}>{province}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+
+                    <Field>
+                      <FieldLabel>Trading Postal Code</FieldLabel>
+                      <Input
+                        value={formData.secondaryPostalCode}
+                        onChange={(e) => updateFormData('secondaryPostalCode', e.target.value)}
+                        placeholder="2001"
+                      />
+                    </Field>
+                  </div>
+                  
                 </div>
               )}
 
@@ -132,7 +156,7 @@ export default function BusinessDetails({
 
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-purple-600" />
+                  <FileText className="w-5 h-5 text-indigo-600" />
                   Your Industry
                 </h2>
 

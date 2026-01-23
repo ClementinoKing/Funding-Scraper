@@ -17,6 +17,7 @@ const SavedPrograms = lazy(() => import('./pages/SavedPrograms.jsx'))
 const Profile = lazy(() => import('./pages/Profile.jsx'))
 const Settings = lazy(() => import('./pages/Settings.jsx'))
 const SearchResults = lazy(() => import('./pages/SearchResults.jsx'))
+const ColorTest = lazy(() => import('./pages/ColorTest.jsx'))
 
 function App() {
   useEffect(() => {
@@ -109,6 +110,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/test-colors" element={<ColorTest />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>

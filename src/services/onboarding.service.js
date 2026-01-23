@@ -25,7 +25,8 @@ export const saveBusinessDetails = async (formData) => {
     regulatedSectors: [],
     doYouExport: false,
     seasonality: '',
-    secondaryIndustries: [],
+    secondaryProvince: '',
+    secondaryPostalCode: '',
     */
 
   const businessData = {
@@ -46,6 +47,17 @@ export const saveBusinessDetails = async (formData) => {
     province: formData.province,
     // municipality: '',
     postal_code: formData.postalCode,
+    // latitude: '',
+    // longitude: '',
+    is_primary: true,
+  };
+
+  const locationData2 = {
+    business_id: "", // to be filled after business creation
+    type: "trading",
+    province: formData.secondaryProvince,
+    // municipality: '',
+    postal_code: formData.secondaryPostalCode,
     // latitude: '',
     // longitude: '',
     is_primary: true,
@@ -86,6 +98,7 @@ export const saveBusinessDetails = async (formData) => {
 
   locationData.business_id = business.id;
   industryData.business_id = business.id;
+  locationData2.business_id = business.id;
 
   await Promise.allSettled([
     existingBusiness
@@ -100,8 +113,17 @@ export const saveBusinessDetails = async (formData) => {
           .from("business_industries")
           .update(industryData)
           .eq("business_id", business.id)
+          .eq("is_primary", true)
           .select()
       : supabase.from("business_industries").upsert(industryData).select(),
+    existingBusiness
+      ? supabase
+          .from("business_locations")
+          .update(locationData2)
+          .eq("business_id", business.id)
+          .eq("is_primary", false)
+          .select()
+      : supabase.from("business_locations").upsert(locationData2).select(),
   ]);
 
   localStorage.setItem("b_id", business.id);

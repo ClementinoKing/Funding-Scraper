@@ -21,7 +21,6 @@ import {Label} from '@/components/ui/label'
 import BusinessTrading from "./detailed-assessment/business-trading";
 
 export default function DetailedAssessments({
-    currentStep,
     handleBack,
     completedAssessmentSections,
     currentAssessmentSection,
@@ -43,10 +42,9 @@ export default function DetailedAssessments({
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
         <div className="max-w-4xl mx-auto pt-8">
-          <StepTimeline currentStep={currentStep} />
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <CheckCircle2 className="w-6 h-6 text-purple-600" />
+              <CheckCircle2 className="w-6 h-6 text-primary" />
               <h1 className="text-3xl font-bold">Detailed Assessment</h1>
             </div>
             <p className="text-muted-foreground">
@@ -61,9 +59,9 @@ export default function DetailedAssessments({
                   <span>Assessment Progress</span>
                   <span>{progress} of 4 sections</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-purple-600 h-2 rounded-full transition-all"
+                    className="bg-primary h-2 rounded-full transition-all"
                     style={{ width: `${(progress / 4) * 100}%` }}
                   />
                 </div>
@@ -80,7 +78,7 @@ export default function DetailedAssessments({
                       onClick={() => setCurrentAssessmentSection(section.id)}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg border transition-all whitespace-nowrap",
-                        isActive && "border-purple-500 bg-purple-50 dark:bg-purple-900/20",
+                        isActive && "border-primary bg-primary-foreground dark:bg-primary/20",
                         !isActive && !isCompleted && "border-border",
                         isCompleted && !isActive && "border-green-500 bg-green-50 dark:bg-green-900/20"
                       )}
@@ -113,13 +111,13 @@ export default function DetailedAssessments({
                         className={cn(
                           "p-6 rounded-lg border-2 text-left transition-all",
                           formData.moneyGoesTo === 'bank'
-                            ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                            : "border-border hover:border-green-300"
+                            ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                            : "border-border hover:border-primary"
                         )}
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <Building2 className="w-8 h-8 text-green-600" />
-                          {formData.moneyGoesTo === 'bank' && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                          <Building2 className="w-8 h-8 text-primary" />
+                          {formData.moneyGoesTo === 'bank' && <CheckCircle2 className="w-5 h-5 text-primary" />}
                         </div>
                         <h3 className="font-semibold">I bank my money</h3>
                       </button>
@@ -128,11 +126,14 @@ export default function DetailedAssessments({
                         className={cn(
                           "p-6 rounded-lg border-2 text-left transition-all",
                           formData.moneyGoesTo === 'cash'
-                            ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                            : "border-border hover:border-green-300"
+                            ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                            : "border-border hover:border-primary"
                         )}
                       >
-                        <Banknote className="w-8 h-8 text-green-600 mb-2" />
+                        <div className="flex justify-between items-start mb-2">
+                          <Banknote className="w-8 h-8 text-primary mb-2" />
+                          {formData.moneyGoesTo === 'cash' && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                        </div>
                         <h3 className="font-semibold">Mostly cash-based</h3>
                       </button>
                     </div>

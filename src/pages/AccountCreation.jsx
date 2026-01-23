@@ -7,6 +7,7 @@ import BusinessDetails from "@/components/pages/account-creation/business-detail
 import FundingNeeds from "@/components/pages/account-creation/funding-needs";
 import DetailedAssessments from "@/components/pages/account-creation/detailed-assessments";
 import FundingReadyStatus from "@/components/pages/account-creation/funding-ready-status";
+import StepTimeline from "@/components/pages/account-creation/step-timeline";
 import { FullPageLoader } from "@/components/LoadingSpinner";
 import { toast } from "sonner";
 import {
@@ -17,6 +18,7 @@ import {
   savePreferencesAndLocation,
   saveBusinessAndTrading,
 } from "@/services/onboarding.service";
+import { useStore } from "@/store/zustand";
 
 const saveProgress = (currentStep, formData) => {
   switch (currentStep) {
@@ -45,16 +47,22 @@ const saveDetailedAssessmentProgress = (currentStep, formData) => {
 };
 
 export default function AccountCreation() {
+  const navigate = useNavigate();
+  const {
+    onboardingData,
+    setOnboardingData,
+    onboardingSession,
+    setOnboardingSession,
+  } = useStore();
   const [loading, setLoading] = useState(true);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [currentAssessmentSection, setCurrentAssessmentSection] = useState(1);
+  const [currentStep, setCurrentStep] = useState(onboardingSession?.currentStep || 1);
+  const [currentAssessmentSection, setCurrentAssessmentSection] = useState(onboardingSession?.currentAssessmentStep || 1);
   const [completedAssessmentSections, setCompletedAssessmentSections] =
     useState([]);
   const [fundingPurposes, setFundingPurposes] = useState([]);
-  const navigate = useNavigate();
 
   // Form data state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(onboardingData ||{
     // Step 1
     businessType: "",
 
@@ -72,7 +80,8 @@ export default function AccountCreation() {
     regulatedSectors: [],
     doYouExport: false,
     seasonality: "",
-    secondaryIndustries: [],
+    secondaryProvince: "",
+    secondaryPostalCode: "",
 
     // Step 3
     fundingAmount: 100000,
@@ -149,7 +158,7 @@ export default function AccountCreation() {
           .order("created_at", { ascending: false })
           .limit(1)
           .single();
-          console.log(onboarding_session);
+        console.log(onboarding_session);
 
         if (onboarding_session) {
           if (onboarding_session.is_completed) {
@@ -179,13 +188,16 @@ export default function AccountCreation() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const goToStep = (step, assessmentStep) => {
+    setCurrentStep(step);
+    setOnboardingSession({ currentStep: step, currentAssessmentStep: assessmentStep || currentAssessmentSection, is_completed: false });
+  }
+
   const handleNext = () => {
     if (currentStep < 5) {
+      setOnboardingSession({ currentStep: currentStep + 1, currentAssessmentStep: currentAssessmentSection, is_completed: false });
       setCurrentStep((prev) => prev + 1);
     }
-
-    console.log(formData);
-    // return;
 
     toast.promise(saveProgress(currentStep, formData), {
       loading: "Saving Progress...",
@@ -195,10 +207,12 @@ export default function AccountCreation() {
         return `Error saving progress: ${error.message || error}`;
       },
     });
+    setOnboardingData(formData);
   };
 
   const handleBack = () => {
     if (currentStep > 1) {
+      setOnboardingSession({ currentStep: currentStep - 1, currentAssessmentStep: currentAssessmentSection, is_completed: false });
       setCurrentStep((prev) => prev - 1);
     }
   };
@@ -210,10 +224,12 @@ export default function AccountCreation() {
         currentAssessmentSection,
       ]);
       setCurrentAssessmentSection((prev) => prev + 1);
+      setOnboardingSession({ currentStep, currentAssessmentStep: currentAssessmentSection + 1, is_completed: false });
     } else {
       // All assessment sections complete, go to step 5
       setCompletedAssessmentSections((prev) => [...prev, 4]);
       setCurrentStep(5);
+      setOnboardingSession({ currentStep: 5, currentAssessmentStep: 4, is_completed: false });
     }
 
     toast.promise(
@@ -227,15 +243,17 @@ export default function AccountCreation() {
         },
       },
     );
+    setOnboardingData(formData);
   };
 
   const handleAssessmentBack = () => {
     if (currentAssessmentSection > 1) {
+      setOnboardingSession({ currentStep, currentAssessmentStep: currentAssessmentSection - 1, is_completed: false });
       setCurrentAssessmentSection((prev) => prev - 1);
     } else {
       setCurrentStep(3); // Go back to funding needs
+      setOnboardingSession({ currentStep: 3, currentAssessmentStep: currentAssessmentSection, is_completed: false });
     }
-    console.log(formData);
   };
 
   const handleSubmit = async () => {
@@ -270,6 +288,9 @@ export default function AccountCreation() {
         return;
       }
 
+      setOnboardingSession({ currentStep: 5, currentAssessmentStep: currentAssessmentSection, is_completed: true });
+      setOnboardingData(null);
+
       navigate("/dashboard");
     } catch (error) {
       console.error("Error:", error);
@@ -282,66 +303,59 @@ export default function AccountCreation() {
     return <FullPageLoader />;
   }
 
-  // Step 1: Business Type Selection
-  if (currentStep === 1) {
-    return (
-      <BusinessTypeSelection
-        currentStep={currentStep}
-        formData={formData}
-        updateFormData={updateFormData}
-        handleNext={handleNext}
-      />
-    );
-  }
+  return (
+    <>
+      <StepTimeline currentStep={currentStep} />
 
-  // Step 2: Business Details
-  if (currentStep === 2) {
-    return (
-      <BusinessDetails
-        currentStep={currentStep}
-        handleNext={handleNext}
-        handleBack={handleBack}
-        formData={formData}
-        updateFormData={updateFormData}
-      />
-    );
-  }
+      {currentStep === 1 && (
+        <BusinessTypeSelection
+          formData={formData}
+          updateFormData={updateFormData}
+          handleNext={handleNext}
+        />
+      )}
 
-  // Step 3: Funding Needs
-  if (currentStep === 3) {
-    return (
-      <FundingNeeds
-        currentStep={currentStep}
-        handleNext={handleNext}
-        handleBack={handleBack}
-        formData={formData}
-        updateFormData={updateFormData}
-        fundingPurposes={fundingPurposes}
-      />
-    );
-  }
+      {currentStep === 2 && (
+        <BusinessDetails
+          handleNext={handleNext}
+          handleBack={handleBack}
+          formData={formData}
+          updateFormData={updateFormData}
+        />
+      )}
 
-  // Step 4: Detailed Assessment
-  if (currentStep === 4) {
-    return (
-      <DetailedAssessments
-        currentStep={currentStep}
-        handleBack={handleBack}
-        completedAssessmentSections={completedAssessmentSections}
-        currentAssessmentSection={currentAssessmentSection}
-        setCurrentAssessmentSection={setCurrentAssessmentSection}
-        handleAssessmentNext={handleAssessmentNext}
-        handleAssessmentBack={handleAssessmentBack}
-        formData={formData}
-        updateFormData={updateFormData}
-      />
-    );
-  }
+      {currentStep === 3 && (
+        <FundingNeeds
+          handleNext={handleNext}
+          handleBack={handleBack}
+          formData={formData}
+          updateFormData={updateFormData}
+          fundingPurposes={fundingPurposes}
+        />
+      )}
 
-  // Step 5: Funding-Ready Status
-  if (currentStep === 5) {
-    return <FundingReadyStatus handleSubmit={handleSubmit} />;
-  }
+      {currentStep === 4 && (
+        <DetailedAssessments
+          handleBack={handleBack}
+          completedAssessmentSections={completedAssessmentSections}
+          currentAssessmentSection={currentAssessmentSection}
+          setCurrentAssessmentSection={setCurrentAssessmentSection}
+          handleAssessmentNext={handleAssessmentNext}
+          handleAssessmentBack={handleAssessmentBack}
+          formData={formData}
+          updateFormData={updateFormData}
+        />
+      )}
 
-  return null;
+      {currentStep === 5 && (
+        <FundingReadyStatus
+          handleSubmit={handleSubmit}
+          handleBack={handleBack}
+          formData={formData}
+          fundingPurposes={fundingPurposes}
+          goToStep={goToStep}
+        />
+      )}
+    </>
+  );
 }

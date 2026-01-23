@@ -10,16 +10,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Building2 } from "lucide-react";
 import {
-  BUSINESS_TYPES,
-  PROVINCES,
-  INDUSTRIES,
-  TIMELINE_OPTIONS,
-  FUNDING_PURPOSES,
+  BUSINESS_TYPES
 } from "@/constants/account-creation";
 import StepTimeline from '@/components/pages/account-creation/step-timeline'
 
 export default function BusinessTypeSelection({
-  currentStep,
   handleNext,
   formData,
   updateFormData,
@@ -29,10 +24,9 @@ export default function BusinessTypeSelection({
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
       <div className="max-w-4xl mx-auto pt-8">
-        <StepTimeline currentStep={currentStep} />
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-4">
-            <Building2 className="w-8 h-8 text-purple-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 mb-4">
+            <Building2 className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
             Tell us about your business
@@ -60,8 +54,8 @@ export default function BusinessTypeSelection({
                     className={cn(
                       "p-6 rounded-lg border-2 transition-all text-left",
                       formData.businessType === type.id
-                        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                        : "border-border hover:border-purple-300 hover:bg-muted/50",
+                        ? "border-primary bg-primary-foreground"
+                        : "border-border hover:border-muted-foreground hover:bg-muted/50",
                     )}
                   >
                     <Icon className={cn("w-8 h-8 mb-3", type.color)} />

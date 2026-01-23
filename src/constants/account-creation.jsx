@@ -28,7 +28,7 @@ import {
 
 // Constants
 export const BUSINESS_TYPES = [
-  { id: 'registered', label: 'Registered Company', description: 'Formally registered with CIPC', icon: Building2, color: 'text-purple-600' },
+  { id: 'registered', label: 'Registered Company', description: 'Formally registered with CIPC', icon: Building2, color: 'text-indigo-600' },
   { id: 'not-registered', label: 'Not Registered', description: 'Operating business, not formally registered', icon: Store, color: 'text-blue-600' },
   { id: 'spaza', label: 'Spaza Shop', description: 'Informal retail business', icon: Store, color: 'text-yellow-600' },
   { id: 'idea', label: 'Business Idea', description: 'Planning to start a business', icon: Lightbulb, color: 'text-orange-600' },

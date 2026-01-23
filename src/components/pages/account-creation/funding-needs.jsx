@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { TIMELINE_OPTIONS } from "@/constants/account-creation";
-import StepTimeline from "@/components/pages/account-creation/step-timeline";
 import {
   Info,
   Lightbulb,
@@ -15,9 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
+import { NumericFormat } from 'react-number-format';
 
 export default function FundingNeeds({
-  currentStep,
   handleNext,
   handleBack,
   formData,
@@ -27,7 +26,6 @@ export default function FundingNeeds({
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-4">
       <div className="max-w-4xl mx-auto pt-8">
-        <StepTimeline currentStep={currentStep} />
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">
             Tell us about your funding needs
@@ -45,21 +43,22 @@ export default function FundingNeeds({
                 <Info className="w-4 h-4 text-muted-foreground" />
               </div>
               <div className="text-center p-6 border-2 border-dashed rounded-lg">
-                <div className="text-4xl font-bold text-purple-600 mb-2">
-                  R {formData.fundingAmount.toLocaleString()}
+                <div className="text-4xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
+
+                  <NumericFormat
+                    value={formData.fundingAmount}
+                    onValueChange={value => updateFormData("fundingAmount", value.floatValue || 0)}
+                    thousandSeparator=","
+                    prefix={'R '}
+                    className="w-fit flex-grow p-2 border-b-2 border-primary text-4xl font-bold text-center outline-none bg-transparent"
+                  />
+
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Type an amount or use the slider below
                 </p>
               </div>
-              <Input
-                type="number"
-                value={formData.fundingAmount}
-                onChange={(e) =>
-                  updateFormData("fundingAmount", parseInt(e.target.value) || 0)
-                }
-                className="text-center text-2xl"
-              />
+
               <input
                 type="range"
                 min="10000"
@@ -73,14 +72,13 @@ export default function FundingNeeds({
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>R10k</span>
-                <span>R100k</span>
-                <span>R500k</span>
-                <span>R1m</span>
-                <span>R5m</span>
-                <span>R25m</span>
+                <span>R20m</span>
+                <span>R40m</span>
+                <span>R60m</span>
+                <span>R80m</span>
                 <span>R100m</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-blue-600">
+              {/* <div className="flex items-center gap-2 text-sm text-primary">
                 <Info className="w-4 h-4" />
                 <span>Selected amount falls in the range: R90k - R110k</span>
               </div>
@@ -90,7 +88,7 @@ export default function FundingNeeds({
                   Tip: Rounded estimates are fine. You can refine this later
                   based on the funding options available to you.
                 </span>
-              </div>
+              </div> */}
             </div>
 
             {/* Timeline */}
@@ -111,8 +109,8 @@ export default function FundingNeeds({
                     className={cn(
                       "p-4 rounded-lg border-2 text-left transition-all",
                       formData.fundingTimeline === option.value
-                        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                        : "border-border hover:border-purple-300",
+                        ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                        : "border-border hover:border-primary",
                     )}
                   >
                     <div className="font-semibold mb-1">{option.label}</div>
@@ -200,7 +198,7 @@ export default function FundingNeeds({
                     updateFormData("fundingDetails", e.target.value)
                   }
                   placeholder="E.g., R250k for refrigerated delivery van in KZN + R120k winter stock; POS upgrade for card acceptance."
-                  className="w-full min-h-[100px] p-3 border rounded-md"
+                  className="w-full min-h-[100px] p-3 border rounded-md bg-background border-border focus:border-primary focus:ring-0 outline-none"
                   maxLength={400}
                 />
                 <div className="flex justify-between mt-1">
