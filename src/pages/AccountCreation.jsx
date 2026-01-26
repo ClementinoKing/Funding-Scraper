@@ -73,6 +73,7 @@ export default function AccountCreation() {
     postalCode: "",
     differentTradingAddress: false,
     industry: "",
+    specialization: "",
     subIndustry: [],
     whoDoYouSellTo: "",
     isRegulated: false,
@@ -82,12 +83,19 @@ export default function AccountCreation() {
     seasonality: "",
     secondaryProvince: "",
     secondaryPostalCode: "",
+    isSubIndustry: false,
+    secondaryIndustry: "",
+    secondarySubIndustry: [],
+    secondarySpecialization: "",
 
     // Step 3
     fundingAmount: 100000,
     fundingTimeline: "",
     fundingPurposes: [],
     fundingDetails: "",
+    isExact: true,
+    fundingMinAmount: 50000,
+    fundingMaxAmount: 150000,
 
     // Step 4 - Assessment
     // Section 1: Business & Trading

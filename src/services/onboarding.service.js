@@ -9,26 +9,6 @@ export const saveBusinessDetails = async (formData) => {
     throw new Error("User not authenticated");
   }
 
-  /*
-    businessType: '',
-    
-    // Step 2
-    companyRegistrationNumber: '',
-    businessName: '',
-    province: '',
-    postalCode: '',
-    differentTradingAddress: false,
-    industry: '',
-    subIndustry: [],
-    whoDoYouSellTo: '',
-    isRegulated: false,
-    regulatedSectors: [],
-    doYouExport: false,
-    seasonality: '',
-    secondaryProvince: '',
-    secondaryPostalCode: '',
-    */
-
   const businessData = {
     profile_id: user.id,
     business_name: formData.businessName,
@@ -60,18 +40,27 @@ export const saveBusinessDetails = async (formData) => {
     postal_code: formData.secondaryPostalCode,
     // latitude: '',
     // longitude: '',
-    is_primary: true,
+    is_primary: false,
   };
 
   const industryData = {
     business_id: "",
     industry_name: formData.industry,
-    // specialisation: '',
+    specialisation: formData.specialization,
     target_consumer: formData.whoDoYouSellTo,
     regulator: formData.regulatedBy,
     seasonality: formData.seasonality,
     is_export: formData.doYouExport,
     is_primary: true,
+    sub_industry: formData.subIndustry,
+  };
+
+  const industryData2 = {
+    business_id: "",
+    industry_name: formData.secondaryIndustry,
+    specialisation: formData.secondarySpecialization,
+    is_primary: false,
+    sub_industry: formData.secondarySubIndustry,
   };
 
   const { data: existingBusiness } = await supabase
@@ -99,6 +88,7 @@ export const saveBusinessDetails = async (formData) => {
   locationData.business_id = business.id;
   industryData.business_id = business.id;
   locationData2.business_id = business.id;
+  industryData2.business_id = business.id;
 
   await Promise.allSettled([
     existingBusiness
@@ -124,6 +114,14 @@ export const saveBusinessDetails = async (formData) => {
           .eq("is_primary", false)
           .select()
       : supabase.from("business_locations").upsert(locationData2).select(),
+    existingBusiness
+      ? supabase
+          .from("business_industries")
+          .update(industryData2)
+          .eq("business_id", business.id)
+          .eq("is_primary", false)
+          .select()
+      : supabase.from("business_industries").upsert(industryData2).select(),
   ]);
 
   localStorage.setItem("b_id", business.id);

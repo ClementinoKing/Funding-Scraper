@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
-import { NumericFormat } from 'react-number-format';
+import { NumericFormat } from "react-number-format";
+import { Checkbox } from "../../ui/checkbox";
 
 export default function FundingNeeds({
   handleNext,
@@ -36,26 +37,40 @@ export default function FundingNeeds({
           <CardContent className="p-8 space-y-8">
             {/* Funding Amount */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <h2 className="text-xl font-semibold">
                   How much funding do you need?
                 </h2>
-                <Info className="w-4 h-4 text-muted-foreground" />
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.isExact}
+                    onCheckedChange={(checked) => updateFormData("isExact", checked)}
+                  />
+                  <span>Exact</span>
+                </label>
               </div>
               <div className="text-center p-6 border-2 border-dashed rounded-lg">
                 <div className="text-4xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
-
-                  <NumericFormat
-                    value={formData.fundingAmount}
-                    onValueChange={value => updateFormData("fundingAmount", value.floatValue || 0)}
-                    thousandSeparator=","
-                    prefix={'R '}
-                    className="w-fit flex-grow p-2 border-b-2 border-primary text-4xl font-bold text-center outline-none bg-transparent"
-                  />
-
+                  {formData.isExact ? (
+                    <NumericFormat
+                      value={formData.fundingAmount}
+                      onValueChange={(value) =>
+                        updateFormData("fundingAmount", value.floatValue || 0)
+                      }
+                      thousandSeparator=","
+                      prefix={"R "}
+                      className="w-full flex-grow p-2 border-b-2 border-primary text-lg md:text-2xl lg:text-4xl font-bold text-center outline-none bg-transparent"
+                    />
+                  ) : (
+                    <div className="w-fit flex-grow p-2 text-lg md:text-2xl lg:text-4xl font-bold text-center outline-none bg-transparent flex md:flex-row flex-col items-center justify-center gap-0 md:gap-2">
+                      <div>R{formData?.fundingMinAmount?.toLocaleString()}</div>
+                      <div className="text-xl text-muted-foreground">-</div>
+                      <div>R{formData?.fundingMaxAmount?.toLocaleString()}</div>
+                    </div>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Type an amount or use the slider below
+                  {formData.isExact ? 'Type an amount. Rounded estimates are fine, you can refine later.' : 'Use the slider below to select an approximate amount.'}
                 </p>
               </div>
 
@@ -63,19 +78,18 @@ export default function FundingNeeds({
                 type="range"
                 min="10000"
                 max="100000000"
-                step="10000"
+                step="50000"
                 value={formData.fundingAmount}
-                onChange={(e) =>
+                onChange={(e) =>{
                   updateFormData("fundingAmount", parseInt(e.target.value))
-                }
-                className="w-full"
+                  updateFormData("fundingMinAmount", parseInt(e.target.value) - (parseInt(e.target.value) * 0.5))
+                  updateFormData("fundingMaxAmount", parseInt(e.target.value) + (parseInt(e.target.value) * 0.5))
+                }}
+                className={"w-full " + (formData.isExact ? "opacity-50 pointer-events-none" : "")}
               />
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>R10k</span>
-                <span>R20m</span>
-                <span>R40m</span>
-                <span>R60m</span>
-                <span>R80m</span>
+                <span>R50m</span>
                 <span>R100m</span>
               </div>
               {/* <div className="flex items-center gap-2 text-sm text-primary">

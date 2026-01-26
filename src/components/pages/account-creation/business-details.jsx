@@ -28,7 +28,6 @@ import {
   TIMELINE_OPTIONS,
   FUNDING_PURPOSES,
 } from "@/constants/account-creation";
-import StepTimeline from '@/components/pages/account-creation/step-timeline'
 
 export default function BusinessDetails({
   handleNext,
@@ -270,9 +269,62 @@ export default function BusinessDetails({
                   </Field>
                 </div>
 
-                <Button variant="ghost" className="w-full">
+                <Button variant="ghost" className={"w-full" + (formData.isSubIndustry ? " hidden" : "")} onClick={() => updateFormData('isSubIndustry', !formData.isSubIndustry)}>
                   + Add secondary industry (optional)
                 </Button>
+
+
+                <div className={"flex justify-between items-center" + (!formData.isSubIndustry ? " hidden" : "")}>
+                    <div>
+                      <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-indigo-600" />
+                        Secondary Industry
+                      </h2>
+                    </div>
+
+                    <div className={(!formData.isSubIndustry ? " hidden" : "")}>
+                      <Button variant="ghost" className="text-xl" onClick={() =>  updateFormData('isSubIndustry', !formData.isSubIndustry)}>
+                        &times;
+                      </Button>
+                    </div>
+                </div>
+
+                <Field className={(!formData.isSubIndustry ? " hidden" : "")}>
+                  <Select value={formData.secondaryIndustry} onValueChange={(value) => updateFormData('secondaryIndustry', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select industry" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDUSTRIES.map(industry => (
+                        <SelectItem key={industry} value={industry}>{industry}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {formData.secondaryIndustry === 'Agriculture & Agro-processing' && formData.isSubIndustry && (
+                  <Field>
+                    <FieldLabel>What type of agriculture business?</FieldLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {['Horticulture', 'Crop farming', 'Livestock', 'Agri-inputs', 'Agro-processing'].map(option => (
+                        <Badge
+                          key={option}
+                          variant={formData?.secondarySubIndustry?.includes(option) ? 'default' : 'outline'}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            const newSub = formData?.secondarySubIndustry?.includes(option)
+                              ? formData?.secondarySubIndustry?.filter(s => s !== option)
+                              : [...formData.secondarySubIndustry, option]
+                            updateFormData('secondarySubIndustry', newSub)
+                          }}
+                        >
+                          {option}
+                        </Badge>
+                      ))}
+                    </div>
+                  </Field>
+                )}
+
               </div>
 
               <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
