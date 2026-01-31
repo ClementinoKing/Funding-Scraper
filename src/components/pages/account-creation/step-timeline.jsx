@@ -1,12 +1,44 @@
 import { STEPS } from "@/constants/account-creation";
 import { cn } from "@/lib/utils";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, LogOut, User } from "lucide-react";
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Button } from '@/components/ui/button'
+import { signOut } from '@/lib/auth'
+import { useNavigate } from 'react-router-dom'
 
 export default function StepTimeline({ currentStep }) {
+  const navigate = useNavigate()
+  async function logout() {
+      await signOut()
+      navigate('/login', { replace: true })
+    }
   return (
     <>
-      <div className="w-full flex justify-end p-4"><ThemeToggle /></div>
+      <div className="w-full flex justify-end p-4">
+        <ThemeToggle />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+              <User className="h-5 w-5" />
+              <span className="sr-only">User menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <div className="w-full max-w-4xl mx-auto mb-12">
         <div className="flex items-center justify-between relative px-4 sm:px-8">

@@ -95,7 +95,7 @@ export async function fetchUserProfile(useCache = true) {
 
     // Fetch fresh profile from database
     const { data: profile, error: profileError } = await supabase
-      .from('user_profiles')
+      .from('business_profile_view')
       .select('*')
       .eq('user_id', user.id)
       .single()

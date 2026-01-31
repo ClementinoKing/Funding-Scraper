@@ -25,9 +25,11 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react'
+import { BusinessMatchingStatus } from '../components/pages/dashboard/BusinessMatchingStatus'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+
   const { programs, loading, error: contextError } = usePrograms()
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState('newest')
@@ -48,6 +50,7 @@ export default function Dashboard() {
         const result = await fetchUserProfile(true) // Use cache
         if (result.success) {
           setUserProfile(result.profile)
+          console.log("Business Profile",result.profile)
         }
       } catch (err) {
         console.error('Error fetching user profile:', err)
@@ -231,6 +234,12 @@ export default function Dashboard() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
+
+        {userProfile && (
+          <div className="px-4 md:px-6">
+            <BusinessMatchingStatus businessId={userProfile.business_id} />
+          </div>
+        )}
 
         <main className="flex-1 px-4 md:px-6 py-6 max-w-7xl mx-auto w-full">
           {/* Page Header */}

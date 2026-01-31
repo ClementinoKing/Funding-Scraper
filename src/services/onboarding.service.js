@@ -52,7 +52,7 @@ export const saveBusinessDetails = async (formData) => {
     seasonality: formData.seasonality,
     is_export: formData.doYouExport,
     is_primary: true,
-    sub_industry: formData.subIndustry,
+    sub_industries: formData.subIndustry,
   };
 
   const industryData2 = {
@@ -60,7 +60,7 @@ export const saveBusinessDetails = async (formData) => {
     industry_name: formData.secondaryIndustry,
     specialisation: formData.secondarySpecialization,
     is_primary: false,
-    sub_industry: formData.secondarySubIndustry,
+    sub_industries: formData.secondarySubIndustry,
   };
 
   const { data: existingBusiness } = await supabase
@@ -82,6 +82,7 @@ export const saveBusinessDetails = async (formData) => {
   console.log(business);
 
   if (businessError) {
+    console.log(businessData, businessError)
     throw businessError;
   }
 

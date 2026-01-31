@@ -9,7 +9,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "scrape": "node scripts/scrape/index.mjs",
+    "scrape_v1": "node scripts/scrape/index.mjs",
+    "scrape": "node scripts/scrape_v2/index.mjs",
+    "scrape:discover": "node scripts/scrape_v2/index.mjs --discover",
+    "scrape:sequential": "node scripts/scrape_v2/index.mjs --sequential",
     "transform": "node scripts/transform/index.mjs",
     "playwright:install": "playwright install --with-deps chromium"
   },

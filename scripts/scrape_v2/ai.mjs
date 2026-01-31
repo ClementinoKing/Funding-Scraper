@@ -1,11 +1,18 @@
-import OpenAI from "openai";
+import OpenAI from 'openai'
 
-export async function fetchAiResponse(
-  payload,
-  apiKey,
-  provider = "openai",
-  pageText = ""
-) {
+/**
+ * Enhance scraped item with AI processing
+ */
+export async function enhanceWithAI(item, pageText, config) {
+  const aiProvider = config.aiProvider || process.env.AI_PROVIDER || 'openai'
+  const apiKey = aiProvider === 'openai' 
+    ? (config.openaiKey || process.env.OPENAI_API_KEY)
+    : (config.groqKey || process.env.GROQ_API_KEY)
+
+  if (!apiKey) {
+    throw new Error(`AI API key not found for provider: ${aiProvider}`)
+  }
+
   const systemPrompt = `
 You are a deterministic data-processing and normalization engine.
 
@@ -19,7 +26,7 @@ Rules you MUST follow:
 - Prefer website content over raw scraped data if conflicts exist
 - If information is missing, write "Not specified" or null
 - Follow the schema EXACTLY
-`;
+`
 
   const userPrompt = `
 Transform the following raw database record into a clean, human-readable summary and structured insights. 
@@ -37,19 +44,17 @@ KEYPOINTS:
 - Make sure you capture the deadline if it has been provided anywhere in the content.
 
 **Available Funding Categories:**
-1.  Seed / Startup Capital
-2.  Product Development
-3.  Inventory & Working Capital
-4.  Marketing & Customer Acquisition
-5.  Equipment & Machinery
-6.  Commercial Real Estate
-7.  Business Expansion / Growth Capital
-8.  Debt Refinancing / Restructuring
-9.  Acquisitions
-10. Bridge / Emergency Funding
-11. R&D / Innovation
-12. Franchise Financing
-13. Green / Sustainable Projects
+1. Working capital (cashflow)                        
+2. Inventory / stock                                 
+3. Equipment / assets                                
+4. Business expansion / CAPEX (premises, new branch) 
+5. Marketing & sales                                 
+6. Payroll / hiring                                  
+7. Technology / software                             
+8. R&D / product development                         
+9. Debt consolidation / refinance                    
+10. Supplier / trade finance need                     
+11. Other 
 
 ELIGIBILITY (CRITICAL):
 - Capturing accurate eligibility criteria is a must no matter what, no blanks needed - write something based on the summary or the website content.
@@ -99,19 +104,19 @@ ETHNICITY:
 - If missing, write "Not specified".
 
 SOURCE URL:
-${payload?.source || "Not specified"}
+${item.url || "Not specified"}
 
 WEBSITE CONTENT (if available):
 ${pageText || "No website content provided."}
 
 RAW SCRAPED DATA (from database):
-${JSON.stringify(payload, null, 2)}
+${JSON.stringify(item, null, 2)}
 
 Required JSON schema:
 {
-    "name": string,
+    "title": string,
     "summary": string,
-    "source": string,
+    "url": string,
     "eligibility": string,
     "funding_amount": string,
     "deadlines": string,
@@ -119,10 +124,8 @@ Required JSON schema:
     "contact_phone": string | null,
     "application_process": string,
     "sectors": string,
-    "source_domain": string,
     "slug": string,
-    "is_active": boolean,
-    "confidence": number,
+    "confidence": number (0-1),
     "age": string,
     "gender": string,
     "ethnicity": string,
@@ -130,30 +133,91 @@ Required JSON schema:
     "program_type": string,
     "funding_category": string
 }
-`;
-  console.log("System Propmt: ",systemPrompt);
-  console.log("user propmt: ",userPrompt);
 
-  if (provider === "openai") {
-    const client = new OpenAI({
-      apiKey: apiKey,
-    });
+Return either a single JSON object or an array of JSON objects if splitting into multiple opportunities.
+`
 
-    const response = await client.responses.create({
-      model: "gpt-5-nano",
-      instructions: systemPrompt,
-      input: userPrompt,
-    });
-
-    return response.output_text;
-  } else if (provider === "groq") {
-    const url = "https://api.groq.com/v1/chat/completions";
-
-    const headers = {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-    };
+  if (aiProvider === 'openai') {
+    return await enhanceWithOpenAI(systemPrompt, userPrompt, apiKey, config)
+  } else if (aiProvider === 'groq') {
+    return await enhanceWithGroq(systemPrompt, userPrompt, apiKey, config)
   } else {
-    throw new Error(`Unsupported AI provider: ${provider}`);
+    throw new Error(`Unsupported AI provider: ${aiProvider}`)
+  }
+}
+
+/**
+ * Enhance with OpenAI
+ */
+async function enhanceWithOpenAI(systemPrompt, userPrompt, apiKey, config) {
+  const client = new OpenAI({ apiKey })
+
+  const model = config.aiModel || 'gpt-4o-mini'
+
+  const response = await client.chat.completions.create({
+    model: model,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.1, // Low temperature for deterministic output
+    response_format: { type: 'json_object' }
+  })
+
+  const content = response.choices[0].message.content
+  
+  try {
+    const parsed = JSON.parse(content)
+    return parsed
+  } catch (error) {
+    // Try to extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    throw new Error('Failed to parse AI response as JSON')
+  }
+}
+
+/**
+ * Enhance with Groq
+ */
+async function enhanceWithGroq(systemPrompt, userPrompt, apiKey, config) {
+  const model = config.aiModel || 'llama-3.3-70b-versatile'
+  
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.1,
+      response_format: { type: 'json_object' }
+    })
+  })
+
+  if (!response.ok) {
+    throw new Error(`Groq API error: ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  const content = data.choices[0].message.content
+
+  try {
+    const parsed = JSON.parse(content)
+    return parsed
+  } catch (error) {
+    // Try to extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+    throw new Error('Failed to parse AI response as JSON')
   }
 }

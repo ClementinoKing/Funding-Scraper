@@ -1,0 +1,199 @@
+// Universal Web Scraper Database Schema
+// Simplified and extensible design for scraping any website
+
+// ============================================
+// CORE SCRAPING TABLES
+// ============================================
+
+Table scrape_sources {
+  id integer [primary key, increment]
+  name varchar [not null, note: 'Human-readable name (e.g., "SEFA", "TIA")']
+  base_url varchar [not null, unique, note: 'Starting URL for scraping']
+  domain varchar [note: 'Extracted domain name']
+  is_active boolean [default: true, note: 'Whether to include in scraping runs']
+  scrape_frequency varchar [note: 'daily, weekly, monthly, etc.']
+  last_scraped_at timestamp
+  config jsonb [note: 'Site-specific configuration (selectors, keywords, etc.)']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Websites to scrape - can be managed via admin interface'
+}
+
+Table scrape_runs {
+  id integer [primary key, increment]
+  source_id integer [ref: > scrape_sources.id]
+  status varchar [not null, note: 'pending, running, success, partial, failed']
+  items_found integer [default: 0]
+  items_inserted integer [default: 0]
+  items_updated integer [default: 0]
+  error_message text
+  duration_seconds integer
+  started_at timestamp [not null]
+  completed_at timestamp
+  metadata jsonb [note: 'Additional run details']
+  
+  indexes {
+    (source_id, started_at) [name: 'idx_scrape_runs_source_started']
+    status [name: 'idx_scrape_runs_status']
+  }
+  
+  Note: 'Log of every scrape attempt'
+}
+
+// ============================================
+// SCRAPED CONTENT TABLES
+// ============================================
+
+Table scraped_items {
+  id integer [primary key, increment]
+  source_id integer [ref: > scrape_sources.id, not null]
+  
+  // Core identification
+  url varchar [not null, note: 'Source URL of the item']
+  slug varchar [not null, unique, note: 'URL-friendly identifier']
+  title varchar [not null, note: 'Main heading/name']
+  
+  // Content fields
+  summary text [note: 'Brief description']
+  content_html text [note: 'Full HTML content if needed']
+  content_text text [note: 'Plain text version']
+  
+  // Structured data (flexible JSON storage)
+  structured_data jsonb [note: 'Extracted data like eligibility, amounts, deadlines, etc.']
+  
+  // Categorization
+  category varchar [note: 'Funding, Grant, Loan, etc.']
+  tags text[] [note: 'Array of tags/keywords']
+  
+  // Status
+  is_active boolean [default: true]
+  is_valid boolean [default: true, note: 'Whether item passed validation']
+  
+  // Scraping metadata
+  first_seen_at timestamp [not null, default: `now()`]
+  last_scraped_at timestamp [not null, default: `now()`]
+  last_updated_at timestamp [note: 'When content actually changed']
+  scrape_count integer [default: 1, note: 'Number of times scraped']
+  
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  indexes {
+    source_id [name: 'idx_items_source']
+    url [name: 'idx_items_url']
+    slug [name: 'idx_items_slug']
+    category [name: 'idx_items_category']
+    is_active [name: 'idx_items_active']
+    (source_id, is_active) [name: 'idx_items_source_active']
+  }
+  
+  Note: 'All scraped items stored with flexible JSON data structure'
+}
+
+Table item_relationships {
+  id integer [primary key, increment]
+  parent_item_id integer [ref: > scraped_items.id, not null]
+  child_item_id integer [ref: > scraped_items.id, not null]
+  relationship_type varchar [default: 'subitem', note: 'subitem, related, variant, etc.']
+  order_position integer [note: 'For ordered relationships']
+  
+  indexes {
+    (parent_item_id, child_item_id) [unique, name: 'idx_item_rel_unique']
+    parent_item_id [name: 'idx_item_rel_parent']
+    child_item_id [name: 'idx_item_rel_child']
+  }
+  
+  Note: 'Parent-child and related items (e.g., programs and subprograms)'
+}
+
+Table item_changes {
+  id integer [primary key, increment]
+  item_id integer [ref: > scraped_items.id, not null]
+  field_name varchar [not null]
+  old_value text
+  new_value text
+  changed_at timestamp [default: `now()`]
+  
+  indexes {
+    (item_id, changed_at) [name: 'idx_changes_item_time']
+  }
+  
+  Note: 'Track changes to scraped items over time'
+}
+
+// ============================================
+// SEARCH & DISCOVERY TABLES
+// ============================================
+
+Table search_queries {
+  id integer [primary key, increment]
+  query varchar [not null, note: 'Search engine query']
+  search_engine varchar [default: 'google', note: 'google, bing, duckduckgo']
+  max_results integer [default: 10]
+  filters jsonb [note: 'Additional search filters']
+  last_run_at timestamp
+  created_at timestamp [default: `now()`]
+  
+  Note: 'Queries to discover new sources via search engines'
+}
+
+Table discovered_sources {
+  id integer [primary key, increment]
+  search_query_id integer [ref: > search_queries.id]
+  url varchar [not null]
+  title varchar
+  snippet text
+  domain varchar
+  discovered_at timestamp [default: `now()`]
+  status varchar [default: 'pending', note: 'pending, approved, rejected, scraped']
+  reviewed_at timestamp
+  review_notes text
+  
+  indexes {
+    status [name: 'idx_discovered_status']
+    (domain, url) [unique, name: 'idx_discovered_unique']
+  }
+  
+  Note: 'URLs discovered from search engines, pending review'
+}
+
+// ============================================
+// CONFIGURATION TABLES
+// ============================================
+
+Table scrape_templates {
+  id integer [primary key, increment]
+  name varchar [not null, unique]
+  description text
+  config jsonb [not null, note: 'Reusable scraping configuration']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  
+  Note: 'Reusable scraping templates for common site structures'
+}
+
+// ============================================
+// VIEWS FOR BUSINESS SCHEMA INTEGRATION
+// ============================================
+
+// Virtual mapping to your business schema
+// These would be implemented as database views or application layer mapping
+
+// Example: Map scraped_items to your funding_programs concept
+// CREATE VIEW funding_programs AS
+// SELECT 
+//   id,
+//   title as program_name,
+//   url as source_url,
+//   structured_data->>'fundingAmount' as funding_amount,
+//   structured_data->>'eligibility' as eligibility,
+//   structured_data->>'deadlines' as deadlines,
+//   structured_data->>'applicationProcess' as application_process,
+//   structured_data->>'contactEmail' as contact_email,
+//   structured_data->>'contactPhone' as contact_phone,
+//   tags as sectors,
+//   is_active,
+//   last_scraped_at
+// FROM scraped_items
+// WHERE category = 'funding' AND is_active = true;
