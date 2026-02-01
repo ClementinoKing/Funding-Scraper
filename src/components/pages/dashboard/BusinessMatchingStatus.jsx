@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { RefreshCw, Percent, Clock, CheckCircle2, Calendar, Scale } from 'lucide-react';
 import { 
   triggerBusinessMatching, 
   checkPendingMatches, 
@@ -28,6 +28,7 @@ export function BusinessMatchingStatus({ businessId }) {
     const matchesResult = await getBusinessMatches(businessId);
     if (matchesResult.data) {
       setMatches(matchesResult.data);
+      console.log("Loaded matches:", matchesResult.data);
       if (matchesResult.data.length > 0) {
         setLastUpdated(matchesResult.data[0].created_at);
       }
@@ -39,10 +40,11 @@ export function BusinessMatchingStatus({ businessId }) {
   const triggerMatching = async (useAI = true) => {
     setRefreshing(true);
     const result = await triggerBusinessMatching(businessId, useAI);
+    console.log("Trigger matching result:", result);
     if (result.success) {
       setPending(true);
       // Wait a moment then refresh
-      setTimeout(() => loadMatchStatus(), 2000);
+      setTimeout(() => loadMatchStatus(), 500);
     }
     setRefreshing(false);
   };
@@ -72,10 +74,10 @@ export function BusinessMatchingStatus({ businessId }) {
   }, [businessId]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Program Matching</span>
+    <div>
+      <div>
+        <div className="flex items-center justify-between">
+          <span>Matching Statistics</span>
           <div className="flex items-center gap-2">
             {pending && (
               <Badge variant="outline" className="gap-1">
@@ -87,29 +89,76 @@ export function BusinessMatchingStatus({ businessId }) {
               {matchStats.total} matches
             </Badge>
           </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </div>
+      </div>
+      <div className="space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="space-y-1">
-            <div className="text-sm font-medium text-muted-foreground">Total Matches</div>
-            <div className="text-2xl font-bold">{matchStats.total}</div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm font-medium text-muted-foreground">Excellent</div>
-            <div className="text-2xl font-bold text-emerald-600">{matchStats.excellent}</div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm font-medium text-muted-foreground">Average Score</div>
-            <div className="text-2xl font-bold">{matchStats.averageScore}%</div>
-          </div>
-          <div className="space-y-1">
-            <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
-            <div className="text-sm">
-              {lastUpdated ? new Date(lastUpdated).toLocaleDateString() : 'Never'}
-            </div>
-          </div>
+
+          <Card className="border-2 hover:border-blue-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total Matches
+                  </p>
+                  <p className="text-2xl font-bold mt-1">{matchStats.total}</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <Percent className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-blue-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Excellent
+                  </p>
+                  <p className="text-2xl font-bold mt-1">{matchStats.excellent}</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+
+          <Card className="border-2 hover:border-blue-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Average Score
+                  </p>
+                  <p className="text-2xl font-bold mt-1">{matchStats.averageScore}%</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Scale className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 hover:border-blue-500/50 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Last Updated
+                  </p>
+                  <p className="text-2xl font-bold mt-1">{lastUpdated ? new Date(lastUpdated).toLocaleDateString() : 'Never'}</p>
+                </div>
+                <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Actions */}
@@ -147,31 +196,7 @@ export function BusinessMatchingStatus({ businessId }) {
             <span className="text-sm">Matches are being processed. This may take a minute...</span>
           </div>
         )}
-
-        {/* Top Matches Preview */}
-        {matches.length > 0 && (
-          <div className="pt-4 border-t">
-            <h4 className="font-medium mb-2">Top Matches</h4>
-            <div className="space-y-2">
-              {matches.slice(0, 3).map((match) => (
-                <div key={match.id} className="flex items-center justify-between p-2 rounded bg-muted/50">
-                  <div>
-                    <div className="font-medium text-sm">Program #{match.program_id}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Score: {match.match_score}%
-                      {match.ai_score && ` (AI: ${match.ai_score}%)`}
-                    </div>
-                  </div>
-                  <Badge variant={match.match_score >= 80 ? "default" : "secondary"}>
-                    {match.match_score >= 80 ? 'Excellent' : 
-                     match.match_score >= 60 ? 'Good' : 'Fair'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

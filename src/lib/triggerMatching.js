@@ -5,6 +5,7 @@ import { supabase } from './supabase'
  */
 export async function triggerBusinessMatching(businessId, useAI = true) {
   try {
+    console.log("Triggering matching for business:", businessId, "useAI:", useAI);
     // First mark the business as needing matching
     await supabase
       .from('pending_program_matches')
@@ -51,11 +52,24 @@ export async function checkPendingMatches(businessId) {
  */
 export async function getBusinessMatches(businessId) {
   const { data, error } = await supabase
-    .from('program_matches_history')
+    .from('matched_programs_view')
     .select('*')
     .eq('business_id', businessId)
-    .order('match_score', { ascending: false })
-    .limit(50);
+    .order('match_score', { ascending: false });
+
+  return { data, error };
+}
+
+/**
+ * Get match results for a business
+ */
+export async function getBusinessMatch(businessId, programSlug) {
+  const { data, error } = await supabase
+    .from('matched_programs_view')
+    .select('*')
+    .eq('business_id', businessId)
+    .eq('program_slug', programSlug)
+    .single();
 
   return { data, error };
 }

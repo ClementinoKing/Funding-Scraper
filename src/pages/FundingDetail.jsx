@@ -27,18 +27,31 @@ import {
   Sparkles,
   X,
   AlertCircle,
+  CircleQuestionMark,
 } from 'lucide-react'
+import { 
+  getBusinessMatch
+} from '@/lib/triggerMatching';
 
 export default function FundingDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { programs, loading, error: contextError } = usePrograms()
+  const [program, setProgram] = useState(null)
   const [copied, setCopied] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const [profileLoading, setProfileLoading] = useState(true)
   const error = contextError || ''
+
+  const loadMatch = async () => {
+    const matchResult = await getBusinessMatch(userProfile.business_id, slug);
+      if (matchResult.data) {
+        setProgram(matchResult.data);
+        console.log("Loaded match:", matchResult.data);
+      }
+  }
 
   // Fetch user profile with caching
   useEffect(() => {
@@ -59,6 +72,12 @@ export default function FundingDetail() {
     loadUserProfile()
   }, [])
 
+  useEffect(() => {
+      if(userProfile?.business_id) {
+        (async () => loadMatch())();
+      }
+    }, [userProfile]);
+
   async function logout() {
     await signOut()
     navigate('/login', { replace: true })
@@ -70,46 +89,6 @@ export default function FundingDetail() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Filter out poorly scraped programs
-  const isValidProgram = (p) => {
-    const name = (p.name || '').trim()
-    const summary = (p.summary || '').trim()
-    const eligibility = (p.eligibility || '').trim()
-    
-    // Filter out programs with HTML/JavaScript code in name
-    if (name.includes('<![CDATA[') || name.includes('_spBodyOnLoadFunctionNames') || name.includes('// <!')) {
-      return false
-    }
-    
-    // Filter out programs with no meaningful name
-    if (!name || name === 'Untitled program' || name.length < 5) {
-      return false
-    }
-    
-    // Keep programs that have funding info or deadlines (useful data)
-    if (p.fundingAmount || p.deadlines) {
-      return true
-    }
-    
-    // Filter out programs with no meaningful content
-    const hasNoData = !summary || 
-      summary === 'No summary available.' ||
-      summary.length < 10 ||
-      (eligibility === 'Not specified.' || !eligibility)
-    
-    // Keep programs that have meaningful summary or eligibility
-    return !hasNoData
-  }
-
-  const program = useMemo(() => {
-    if (!slug || programs.length === 0) return null
-    // Try to match by database slug first, then fall back to slugifyFunding
-    const found = programs.find((p) => 
-      p.slug === slug || slugifyFunding(p.name, p.source) === slug
-    )
-    // Return null if program is invalid (poorly scraped)
-    return found && isValidProgram(found) ? found : null
-  }, [slug, programs])
 
   // Check saved status when program is loaded
   useEffect(() => {
@@ -126,17 +105,17 @@ export default function FundingDetail() {
 
   // Handle save/unsave
   async function handleSaveToggle() {
-    if (!program?.id) return
+    if (!program?.program_id) return
 
     setIsSaving(true)
     try {
       if (isSaved) {
-        const result = await unsaveProgram(program.id, null)
+        const result = await unsaveProgram(program.program_id, null)
         if (result.success) {
           setIsSaved(false)
         }
       } else {
-        const result = await saveProgram(program.id, null)
+        const result = await saveProgram(program.program_id, null)
         if (result.success) {
           setIsSaved(true)
         } else if (result.error !== 'Program is already saved') {
@@ -150,24 +129,17 @@ export default function FundingDetail() {
     }
   }
 
-  // Calculate match score for current program
-  const programQualification = useMemo(() => {
-    if (!program || !userProfile) return null
-    return checkProgramQualification(program, userProfile)
-  }, [program, userProfile])
-
   const siblingPrograms = useMemo(() => {
-    if (!program || !program.source) return []
+    if (!program || !program.program_url) return []
     let host = ''
     try {
-      host = new URL(program.source).host
+      host = new URL(program.program_url).host
     } catch {}
     if (!host) return []
     
     // Get programs from same source
     let relatedPrograms = programs.filter((p) => {
-      if (!p?.source || p === program) return false
-      if (!isValidProgram(p)) return false
+      if (!p?.program_source || p === program) return false
       // Exclude subprograms (they have parentProgram field)
       if (p.parentProgram) return false
       try {
@@ -186,14 +158,6 @@ export default function FundingDetail() {
     return relatedPrograms.slice(0, 5)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [program, programs, userProfile])
-
-  const sourceDomain = program?.source ? (() => {
-    try {
-      return new URL(program.source).hostname.replace('www.', '')
-    } catch {
-      return 'Unknown'
-    }
-  })() : 'Unknown'
 
   if (loading) {
     return (
@@ -297,8 +261,8 @@ export default function FundingDetail() {
                 </>
               )}
             </Button>
-            {program.source && (
-              <a href={program.source} target="_blank" rel="noreferrer">
+            {program.program_url && (
+              <a href={program.program_url} target="_blank" rel="noreferrer">
                 <Button size="sm" className="gap-2">
                   <ExternalLink className="w-4 h-4" /> Apply
                 </Button>
@@ -319,18 +283,18 @@ export default function FundingDetail() {
                       <Building2 className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">{sourceDomain}</p>
+                      <p className="text-sm font-medium text-muted-foreground">{program.program_source}</p>
                       {profileLoading ? (
                         <Skeleton className="h-5 w-24 mt-1" />
                       ) : (
-                        programQualification && (
+                        (
                           <div className="flex items-center gap-2 mt-1">
                             <Badge 
-                              variant={programQualification.qualifies ? "default" : "secondary"}
+                              variant={program.match_score > 50 ? "default" : "secondary"}
                               className="gap-1.5 text-xs"
                             >
                               <Sparkles className="w-3 h-3" />
-                              {programQualification.score}% Match
+                              {program.match_score}% Match
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               Active
@@ -341,7 +305,7 @@ export default function FundingDetail() {
                     </div>
                   </div>
                   <h1 className="text-4xl font-bold tracking-tight leading-tight">
-                    {program.name || 'Untitled program'}
+                    {program.program_name || 'Untitled program'}
                   </h1>
                 </div>
               </div>
@@ -360,7 +324,7 @@ export default function FundingDetail() {
                   </div>
                   <div className="pl-10">
                     <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                      {program.summary || 'No summary available.'}
+                      {program.program_summary || 'No summary available.'}
                     </p>
                   </div>
                 </section>
@@ -377,13 +341,13 @@ export default function FundingDetail() {
                   </div>
                   <div className="pl-10">
                     <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-                      {program.eligibility || 'Not specified.'}
+                      {program.program_eligibility || 'Not specified.'}
                     </p>
                   </div>
                 </section>
 
                 {/* Funding Amount */}
-                {program.fundingAmount && (
+                {program.program_funding_amount && (
                   <>
                     <Separator className="my-8" />
                     <section className="space-y-3">
@@ -394,7 +358,7 @@ export default function FundingDetail() {
                         <h2 className="text-xl font-semibold">Funding Amount</h2>
                       </div>
                       <div className="pl-10">
-                        {program.fundingAmount.includes(';') ? (
+                        {program.program_funding_amount.includes(';') ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                             {(() => {
                               // Function to format numbers with commas
@@ -417,7 +381,7 @@ export default function FundingDetail() {
                               }
                               
                               // Parse and sort amounts from highest to lowest
-                              const amounts = program.fundingAmount
+                              const amounts = program.program_funding_amount
                                 .split(';')
                                 .map((amount) => amount.trim())
                                 .filter((amount) => amount.length > 0)
@@ -474,7 +438,7 @@ export default function FundingDetail() {
                           </div>
                         ) : (
                           <p className="text-sm leading-relaxed text-foreground">
-                            {program.fundingAmount.includes(',') ? program.fundingAmount : program.fundingAmount.replace(/(\d+\.?\d*)/g, (match) => {
+                            {program.program_funding_amount.includes(',') ? program.program_funding_amount : program.program_funding_amount.replace(/(\d+\.?\d*)/g, (match) => {
                               if (match.includes(',')) return match
                               const parts = match.split('.')
                               const formattedInteger = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
@@ -488,7 +452,7 @@ export default function FundingDetail() {
                 )}
 
                 {/* Deadline */}
-                {program.deadlines && (
+                {program.program_deadlines && (
                   <>
                     <Separator className="my-8" />
                     <section className="space-y-3">
@@ -500,7 +464,7 @@ export default function FundingDetail() {
                       </div>
                       <div className="pl-10">
                         <p className="text-sm leading-relaxed text-foreground">
-                          {program.deadlines}
+                          {program.program_deadlines}
                         </p>
                       </div>
                     </section>
@@ -508,16 +472,16 @@ export default function FundingDetail() {
                 )}
 
                 {/* Source */}
-                {program.source && (
+                {program.program_url && (
                   <>
                     <Separator className="my-8" />
                     <section className="space-y-3">
                       <h2 className="text-lg font-semibold">Source</h2>
                       <div className="pl-0 flex items-center gap-3 flex-wrap">
                         <Badge variant="secondary" className="text-sm py-2 px-4 font-mono">
-                          {program.source.replace(/^https?:\/\//, '')}
+                          {program.program_url.replace(/^https?:\/\//, '')}
                         </Badge>
-                        <a href={program.source} target="_blank" rel="noreferrer">
+                        <a href={program.program_url} target="_blank" rel="noreferrer">
                           <Button variant="outline" size="sm" className="gap-2">
                             <ExternalLink className="w-4 h-4" /> View Source
                           </Button>
@@ -545,22 +509,22 @@ export default function FundingDetail() {
                               <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0 space-y-2">
                                   <h3 className="font-semibold text-base leading-tight">{subprogram.name}</h3>
-                                  {subprogram.summary && (
+                                  {subprogram.program_summary && (
                                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                                      {subprogram.summary}
+                                      {subprogram.program_summary}
                                     </p>
                                   )}
                                   <div className="flex flex-wrap gap-2 pt-2">
-                                    {subprogram.fundingAmount && (
+                                    {subprogram.program_funding_amount && (
                                       <Badge variant="outline" className="gap-1.5 text-xs">
                                         <DollarSign className="w-3 h-3" />
-                                        {subprogram.fundingAmount}
+                                        {subprogram.program_funding_amount}
                                       </Badge>
                                     )}
-                                    {subprogram.deadlines && (
+                                    {subprogram.program_deadlines && (
                                       <Badge variant="outline" className="gap-1.5 text-xs">
                                         <Calendar className="w-3 h-3" />
-                                        {subprogram.deadlines}
+                                        {subprogram.program_deadlines}
                                       </Badge>
                                     )}
                                     {subprogram.sectors && (
@@ -570,9 +534,9 @@ export default function FundingDetail() {
                                     )}
                                   </div>
                                 </div>
-                                {subprogram.source && (
+                                {subprogram.program_url && (
                                   <Link
-                                    to={`/funding/${slug}/subprogram/${subprogram.slug || slugifyFunding(subprogram.name, subprogram.source)}`}
+                                    to={`/funding/${slug}/subprogram/${subprogram.slug || slugifyFunding(subprogram.name, subprogram.program_url)}`}
                                     className="flex-shrink-0"
                                   >
                                     <Button size="sm" variant="outline">
@@ -615,7 +579,7 @@ export default function FundingDetail() {
                   </div>
                 </CardContent>
               </Card>
-            ) : programQualification && userProfile ? (
+            ) :  userProfile ? (
               <Card className="shadow-sm sticky top-8">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-lg font-semibold">Match Score</CardTitle>
@@ -627,56 +591,37 @@ export default function FundingDetail() {
                   {/* Circular Progress */}
                   <div className="flex justify-center py-2">
                     <CircularProgress 
-                      value={programQualification.score} 
-                      size={160}
+                      value={program.match_score} 
+                      size={100}
                       strokeWidth={10}
                     />
+                  </div>
+
+                  <div className="text-sm text-muted-foreground whitespace-pre-wrap text-justify">
+                    {program.ai_analysis}
                   </div>
 
                   {/* Score Breakdown */}
                   <div className="space-y-1">
                     <h3 className="text-sm font-semibold mb-3 text-foreground">Score Breakdown</h3>
-                    {programQualification.breakdown && programQualification.breakdown.length > 0 ? (
-                      (() => {
-                        const matchedItems = programQualification.breakdown.filter(item => item.points > 0)
-                        return matchedItems.length > 0 ? (
-                          <div className="space-y-1.5">
-                            {matchedItems.map((item, index) => {
+                    {program.match_reasons && program.match_reasons.length > 0 ? (
+                      (() => <div className="space-y-1.5">
+                            {program.match_reasons.map((item, index) => {
                               return (
                                 <div 
                                   key={index}
                                   className="flex items-center justify-between p-2.5 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
                                 >
                                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                    {item.partial ? (
-                                      <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-                                    ) : (
-                                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                    )}
-                                    <span className="text-sm text-foreground truncate font-medium">
-                                      {item.criterion}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    <span className={cn(
-                                      "text-sm font-semibold tabular-nums",
-                                      item.partial 
-                                        ? "text-yellow-600 dark:text-yellow-400"
-                                        : "text-green-600 dark:text-green-400"
-                                    )}>
-                                      {item.points}/{item.maxPoints}
+                                    <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                                    <span className="text-xs md:text-sm text-foreground truncate font-medium">
+                                      {item}
                                     </span>
                                   </div>
                                 </div>
                               )
                             })}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-6">
-                            No matches found
-                          </p>
-                        )
-                      })()
+                          </div>)()
                     ) : (
                       <p className="text-sm text-muted-foreground text-center py-6">
                         No breakdown available

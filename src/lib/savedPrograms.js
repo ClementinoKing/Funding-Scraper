@@ -81,11 +81,10 @@ export async function saveProgram(programId, subprogramId = null, notes = null) 
 
     // Insert into saved_programs table
     const { data, error } = await supabase
-      .from('saved_programs')
+      .from('saved_matches')
       .insert({
         user_id: user.id,
         program_id: programId || null,
-        subprogram_id: subprogramId || null,
         notes: notes || null,
       })
       .select()
@@ -125,16 +124,14 @@ export async function unsaveProgram(programId, subprogramId = null) {
 
     // Build the query
     let query = supabase
-      .from('saved_programs')
+      .from('saved_matches')
       .delete()
       .eq('user_id', user.id)
 
     if (programId) {
-      query = query.eq('program_id', programId).is('subprogram_id', null)
-    } else if (subprogramId) {
-      query = query.eq('subprogram_id', subprogramId).is('program_id', null)
+      query = query.eq('program_id', programId)
     } else {
-      return { success: false, error: 'Either programId or subprogramId must be provided' }
+      return { success: false, error: 'Either programId must be provided' }
     }
 
     const { error } = await query
@@ -169,16 +166,14 @@ export async function checkSavedStatus(programId, subprogramId = null) {
 
     // Build the query
     let query = supabase
-      .from('saved_programs')
+      .from('saved_matches')
       .select('*')
       .eq('user_id', user.id)
       .limit(1)
 
     if (programId) {
-      query = query.eq('program_id', programId).is('subprogram_id', null)
-    } else if (subprogramId) {
-      query = query.eq('subprogram_id', subprogramId).is('program_id', null)
-    } else {
+      query = query.eq('program_id', programId)
+    }  else {
       return { isSaved: false }
     }
 
@@ -231,47 +226,8 @@ export async function fetchSavedPrograms(useCache = true) {
     // Fetch saved programs with joined program/subprogram data
     // Only select fields that are actually used to improve query performance
     const { data, error } = await supabase
-      .from('saved_programs')
-      .select(`
-        id,
-        program_id,
-        subprogram_id,
-        notes,
-        created_at,
-        programs:program_id (
-          id,
-          name,
-          summary,
-          source,
-          eligibility,
-          funding_amount,
-          deadlines,
-          contact_email,
-          contact_phone,
-          application_process,
-          sectors,
-          slug,
-          source_domain,
-          created_at
-        ),
-        subprograms:subprogram_id (
-          id,
-          name,
-          summary,
-          source,
-          eligibility,
-          funding_amount,
-          deadlines,
-          contact_email,
-          contact_phone,
-          application_process,
-          sectors,
-          slug,
-          source_domain,
-          parent_program_id,
-          created_at
-        )
-      `)
+      .from('v_saved_programs')
+      .select(`*`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1000) // Limit to prevent huge queries
@@ -283,17 +239,13 @@ export async function fetchSavedPrograms(useCache = true) {
     // Transform the data to match the program structure used in the app
     // Filter out saved programs where the program/subprogram was deleted (null foreign keys)
     const transformedData = (data || []).map((saved) => {
-      const program = saved.programs || saved.subprograms
-      // If program/subprogram was deleted, the foreign key will be null
-      // Skip these entries as they're orphaned records
-      if (!program) return null
+      if (!data) return null
 
       return {
         savedId: saved.id,
         notes: saved.notes,
         savedAt: saved.created_at,
-        isSubprogram: !!saved.subprogram_id,
-        ...transformProgramData(program),
+        ...saved
       }
     }).filter(Boolean)
 
@@ -346,7 +298,7 @@ export async function updateSavedProgramNotes(savedProgramId, notes) {
     }
 
     const { error } = await supabase
-      .from('saved_programs')
+      .from('saved_matches')
       .update({ notes })
       .eq('id', savedProgramId)
       .eq('user_id', user.id) // Ensure user can only update their own saved programs

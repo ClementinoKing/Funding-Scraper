@@ -296,7 +296,7 @@ export default function AccountCreation() {
         return;
       }
 
-      setOnboardingSession({ currentStep: 5, currentAssessmentStep: currentAssessmentSection, is_completed: true });
+      setOnboardingSession({ currentStep: 1, currentAssessmentStep: 1, is_completed: false });
       setOnboardingData(null);
 
       navigate("/dashboard");
