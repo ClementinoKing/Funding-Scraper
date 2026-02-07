@@ -217,7 +217,6 @@ export const saveBusinessAndTrading = async (formData) => {
     monthly_customers: formData.monthlyCustomers,
     revenue_from_biggest_customer: formData.revenueFromBiggestCustomer,
     customer_payment_speed: formData.customerPaymentSpeed,
-    average_days_to_get_paid: formData.averageDaysToGetPaid,
   }
 
   const payment_methods = formData.paymentMethods.map((method) => ({
@@ -267,7 +266,6 @@ export const saveFinanceAndBanking = async (formData) => {
     bank_name: formData.bank,
     account_age: formData.accountDuration,
     monthly_income_band: formData.monthlyIncomeRange,
-    monthly_income_exact: formData.exactMonthlyIncome ?? 0,
     tracking_method: formData.trackFinances,
   };
   const { data: existingFinancial } = await supabase

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function BusinessTrading({ formData, updateFormData }) {
+  console.log(formData)
     /**
      * Business & Trading Form Section
      * @param {object} formData - The current form data state
@@ -75,25 +76,7 @@ export default function BusinessTrading({ formData, updateFormData }) {
         Tell us about your business model and customers
       </p>
 
-      <Field>
-        <FieldLabel>Who are your main customers?</FieldLabel>
-        <Select
-          value={formData.mainCustomers}
-          onValueChange={(value) => updateFormData("mainCustomers", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="consumers">Consumers (B2C)</SelectItem>
-            <SelectItem value="businesses">Other businesses (B2B)</SelectItem>
-            <SelectItem value="government">Government/SoEs</SelectItem>
-            <SelectItem value="mixed">Mixed</SelectItem>
-          </SelectContent>
-        </Select>
-      </Field>
-
-      {formData.mainCustomers === "businesses" && (
+      {formData.whoDoYouSellTo === "Businesses" && (
         <Card className="bg-muted/50"> 
           <CardContent className="p-4 space-y-4">
             <h3 className="font-semibold">Business Customer Details</h3>
@@ -156,17 +139,6 @@ export default function BusinessTrading({ formData, updateFormData }) {
                   <SelectItem value="90+">90+ days</SelectItem>
                 </SelectContent>
               </Select>
-            </Field>
-            <Field>
-              <FieldLabel>Average days to get paid (if known)</FieldLabel>
-              <Input
-                type="number"
-                value={formData.averageDaysToGetPaid}
-                onChange={(e) =>
-                  updateFormData("averageDaysToGetPaid", e.target.value)
-                }
-                placeholder="45"
-              />
             </Field>
           </CardContent>
         </Card>

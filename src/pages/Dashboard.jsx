@@ -53,6 +53,7 @@ export default function Dashboard() {
       // Check pending status
       const pendingResult = await checkPendingMatches(userProfile.business_id);
       setPending(pendingResult.hasPending);
+      console.log("Pending match status:", pendingResult);
       
       // Load existing matches
       const matchesResult = await getBusinessMatches(userProfile.business_id);
@@ -69,11 +70,11 @@ export default function Dashboard() {
   
     const triggerMatching = async (useAI = true) => {
       setRefreshing(true);
+      console.log("Triggered matching");
       const result = await triggerBusinessMatching(userProfile.business_id, useAI);
       console.log("Trigger matching result:", result);
       if (result.success) {
         setPending(true);
-        // Wait a moment then refresh
         setTimeout(() => loadMatchStatus(), 500);
       }
       setRefreshing(false);
@@ -87,6 +88,12 @@ export default function Dashboard() {
         ? Math.round(matches.reduce((sum, m) => sum + m.match_score, 0) / matches.length)
         : 0,
     };
+
+    useEffect(() => {
+      if (pending) {
+        triggerMatching(false);
+      }
+    }, [pending]);
   
     useEffect(() => {
       if(userProfile?.business_id) {

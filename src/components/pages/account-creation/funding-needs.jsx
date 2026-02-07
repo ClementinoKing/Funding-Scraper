@@ -41,68 +41,48 @@ export default function FundingNeeds({
                 <h2 className="text-xl font-semibold">
                   How much funding do you need?
                 </h2>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={formData.isExact}
-                    onCheckedChange={(checked) => updateFormData("isExact", checked)}
-                  />
-                  <span>Exact</span>
-                </label>
               </div>
               <div className="text-center p-6 border-2 border-dashed rounded-lg">
                 <div className="text-4xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
-                  {formData.isExact ? (
-                    <NumericFormat
-                      value={formData.fundingAmount}
-                      onValueChange={(value) =>
-                        updateFormData("fundingAmount", value.floatValue || 0)
-                      }
-                      thousandSeparator=","
-                      prefix={"R "}
-                      className="w-full flex-grow p-2 border-b-2 border-primary text-lg md:text-2xl lg:text-4xl font-bold text-center outline-none bg-transparent"
-                    />
-                  ) : (
-                    <div className="w-fit flex-grow p-2 text-lg md:text-2xl lg:text-4xl font-bold text-center outline-none bg-transparent flex md:flex-row flex-col items-center justify-center gap-0 md:gap-2">
-                      <div>R{formData?.fundingMinAmount?.toLocaleString()}</div>
-                      <div className="text-xl text-muted-foreground">-</div>
-                      <div>R{formData?.fundingMaxAmount?.toLocaleString()}</div>
-                    </div>
-                  )}
+                  <NumericFormat
+                    value={formData.fundingAmount}
+                    onValueChange={(value) => {
+                      updateFormData("fundingAmount", value.floatValue || 0);
+                      updateFormData(
+                        "fundingMinAmount",
+                        value.floatValue - value.floatValue * 0.1,
+                      );
+                      updateFormData(
+                        "fundingMaxAmount",
+                        value.floatValue + value.floatValue * 0.1,
+                      );
+                    }}
+                    thousandSeparator=","
+                    prefix={"R "}
+                    className="w-full flex-grow p-2 border-b-2 border-primary text-lg md:text-2xl lg:text-4xl font-bold text-center outline-none bg-transparent"
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {formData.isExact ? 'Type an amount. Rounded estimates are fine, you can refine later.' : 'Use the slider below to select an approximate amount.'}
+                  Type an amount. Rounded estimates are fine, you can refine later.
                 </p>
               </div>
 
-              <input
-                type="range"
-                min="10000"
-                max="100000000"
-                step="50000"
-                value={formData.fundingAmount}
-                onChange={(e) =>{
-                  updateFormData("fundingAmount", parseInt(e.target.value))
-                  updateFormData("fundingMinAmount", parseInt(e.target.value) - (parseInt(e.target.value) * 0.5))
-                  updateFormData("fundingMaxAmount", parseInt(e.target.value) + (parseInt(e.target.value) * 0.5))
-                }}
-                className={"w-full " + (formData.isExact ? "opacity-50 pointer-events-none" : "")}
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>R10k</span>
-                <span>R50m</span>
-                <span>R100m</span>
+              <div className="flex flex-col items-center justify-center gap-2 text-sm text-primary p-4 bg-primary/10 rounded-lg">
+                
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4" /> Selected amount falls in the range:
+                </div>
+                <div className="font-semibold text-lg">
+                  R {formData?.fundingMinAmount?.toLocaleString()} - 
+                  R {formData?.fundingMaxAmount?.toLocaleString()}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Lightbulb className="w-4 h-4" />
+                  <span>
+                    This helps us catch any typos and find the right funding options.
+                  </span>
+                </div>
               </div>
-              {/* <div className="flex items-center gap-2 text-sm text-primary">
-                <Info className="w-4 h-4" />
-                <span>Selected amount falls in the range: R90k - R110k</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Lightbulb className="w-4 h-4" />
-                <span>
-                  Tip: Rounded estimates are fine. You can refine this later
-                  based on the funding options available to you.
-                </span>
-              </div> */}
             </div>
 
             {/* Timeline */}

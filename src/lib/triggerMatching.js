@@ -21,7 +21,7 @@ export async function triggerBusinessMatching(businessId, useAI = true) {
       body: {
         batch_size: 1,
         use_ai: useAI,
-        priority_threshold: 3, // Only process high priority
+        priority_threshold: 2, // Only process high priority
       },
     });
     console.log("Trigger response",data)

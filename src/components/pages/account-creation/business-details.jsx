@@ -215,7 +215,7 @@ export default function BusinessDetails({
                     </div>
                   </Field>
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between hidden">
                     <div>
                       <FieldLabel>Is your sub-sector regulated?</FieldLabel>
                       <FieldDescription>Select applicable regulations</FieldDescription>
@@ -269,7 +269,7 @@ export default function BusinessDetails({
                   </Field>
                 </div>
 
-                <Button variant="ghost" className={"w-full" + (formData.isSubIndustry ? " hidden" : "")} onClick={() => updateFormData('isSubIndustry', !formData.isSubIndustry)}>
+                <Button variant="ghost" className={"hidden w-full" + (formData.isSubIndustry ? " hidden" : "")} onClick={() => updateFormData('isSubIndustry', !formData.isSubIndustry)}>
                   + Add secondary industry (optional)
                 </Button>
 

@@ -200,16 +200,6 @@ export default function DetailedAssessments({
                   </Field>
 
                   <Field>
-                    <FieldLabel>Exact monthly income (optional)</FieldLabel>
-                    <Input
-                      type="number"
-                      value={formData.exactMonthlyIncome}
-                      onChange={(e) => updateFormData('exactMonthlyIncome', e.target.value)}
-                      placeholder="150000"
-                    />
-                  </Field>
-
-                  <Field>
                     <FieldLabel>How do you track your finances?</FieldLabel>
                     <Select value={formData.trackFinances} onValueChange={(value) => updateFormData('trackFinances', value)}>
                       <SelectTrigger>
@@ -257,9 +247,9 @@ export default function DetailedAssessments({
                         <SelectValue placeholder="Select stage" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pre_revenue">Idea stage</SelectItem>
-                        <SelectItem value="early">Early stage</SelectItem>
-                        <SelectItem value="growing">Scaling</SelectItem>
+                        <SelectItem value="pre_revenue">Still an idea</SelectItem>
+                        <SelectItem value="early">Just getting started</SelectItem>
+                        <SelectItem value="growing">Growing Steadily</SelectItem>
                         <SelectItem value="established">Well established</SelectItem>
                       </SelectContent>
                     </Select>
@@ -298,14 +288,15 @@ export default function DetailedAssessments({
                       {[
                         { id: 'youth', label: 'Youth-owned (18-35 years)' },
                         { id: 'rural', label: 'Based in rural area or township' },
-                        { id: 'coloured', label: 'Coloured-owned (51%+ Coloured ownership)' },
+                        // { id: 'coloured', label: 'Coloured-owned (51%+ Coloured ownership)' },
                         { id: 'disability', label: 'Disability-owned (51%+ people with disabilities)' },
                         { id: 'women', label: 'Women-owned (51%+ women ownership)' },
                         { id: 'black', label: 'Black-owned (51%+ Black ownership)' },
-                        { id: 'indian', label: 'Indian-owned (51%+ Indian ownership)' },
+                        // { id: 'indian', label: 'Indian-owned (51%+ Indian ownership)' },
                       ].map(demo => (
                         <div key={demo.id} className="flex items-center gap-2">
                           <Checkbox
+                            id={demo.id}
                             checked={formData.demographics.includes(demo.id)}
                             onCheckedChange={(checked) => {
                               const newDemos = checked
@@ -314,7 +305,7 @@ export default function DetailedAssessments({
                               updateFormData('demographics', newDemos)
                             }}
                           />
-                          <Label>{demo.label}</Label>
+                          <Label htmlFor={demo.id}>{demo.label}</Label>
                         </div>
                       ))}
                     </div>
@@ -381,6 +372,7 @@ export default function DetailedAssessments({
                       ].map(doc => (
                         <div key={doc} className="flex items-center gap-2">
                           <Checkbox
+                            id={doc}
                             checked={formData.financialDocuments.includes(doc)}
                             onCheckedChange={(checked) => {
                               const newDocs = checked
@@ -389,7 +381,7 @@ export default function DetailedAssessments({
                               updateFormData('financialDocuments', newDocs)
                             }}
                           />
-                          <Label>{doc}</Label>
+                          <Label htmlFor={doc}>{doc}</Label>
                         </div>
                       ))}
                     </div>
