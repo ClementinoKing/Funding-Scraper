@@ -101,6 +101,8 @@ export const ProgramCard = memo(function ProgramCard({
     }
   };
 
+  const program_score = program?.ai_score != 0 ? program.ai_score : program.match_score || 0;
+
   if (variant === "list") {
     return (
       <Link
@@ -125,7 +127,7 @@ export const ProgramCard = memo(function ProgramCard({
                           >
                             <CheckCircle2 className="w-3 h-3" />
                             Qualified (
-                            {program?.match_score || program?.ai_score || 0}%)
+                            {program_score}%)
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
@@ -268,7 +270,7 @@ export const ProgramCard = memo(function ProgramCard({
                       className="mt-2 gap-1 bg-emerald-600 hover:bg-emerald-700"
                     >
                       <CheckCircle2 className="w-3 h-3" />
-                      Qualified ({program.match_score || program.ai_score || 0}%
+                      Qualified ({program_score}%
                       match)
                     </Badge>
                   </TooltipTrigger>

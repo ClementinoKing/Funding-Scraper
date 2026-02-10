@@ -91,7 +91,7 @@ export default function Dashboard() {
 
     useEffect(() => {
       if (pending) {
-        triggerMatching(false);
+        triggerMatching();
       }
     }, [pending]);
   

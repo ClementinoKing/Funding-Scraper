@@ -5,12 +5,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
-import { slugifyFunding, cn } from '@/lib/utils'
-import { signOut } from '@/lib/auth'
+import { slugifyFunding} from '@/lib/utils'
+// import { signOut } from '@/lib/auth'
 import { usePrograms } from '@/contexts/ProgramsContext'
 import { saveProgram, unsaveProgram, checkSavedStatus } from '@/lib/savedPrograms'
 import { fetchUserProfile } from '@/lib/userProfile'
-import { checkProgramQualification, filterQualifiedPrograms } from '@/lib/profileMatching'
+import { filterQualifiedPrograms } from '@/lib/profileMatching'
 import { CircularProgress } from '@/components/CircularProgress'
 import {
   ArrowLeft,
@@ -26,18 +26,20 @@ import {
   CheckCircle2,
   Sparkles,
   X,
-  AlertCircle,
+  CircleX,
   CircleQuestionMark,
 } from 'lucide-react'
 import { 
   getBusinessMatch
 } from '@/lib/triggerMatching';
+import { FullPageLoader } from '../components/LoadingSpinner'
 
 export default function FundingDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { programs, loading, error: contextError } = usePrograms()
   const [program, setProgram] = useState(null)
+  const [isFetching, setIsFetching] = useState(true);
   const [copied, setCopied] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -46,11 +48,13 @@ export default function FundingDetail() {
   const error = contextError || ''
 
   const loadMatch = async () => {
+    setIsFetching(true)
     const matchResult = await getBusinessMatch(userProfile.business_id, slug);
-      if (matchResult.data) {
-        setProgram(matchResult.data);
-        console.log("Loaded match:", matchResult.data);
-      }
+    if (matchResult.data) {
+      setProgram(matchResult.data);
+      console.log("Loaded match:", matchResult.data);
+    }
+    setIsFetching(false)
   }
 
   // Fetch user profile with caching
@@ -78,10 +82,10 @@ export default function FundingDetail() {
       }
     }, [userProfile]);
 
-  async function logout() {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
+  // async function logout() {
+  //   await signOut()
+  //   navigate('/login', { replace: true })
+  // }
 
   function copyLink() {
     navigator.clipboard.writeText(window.location.href)
@@ -134,7 +138,7 @@ export default function FundingDetail() {
     let host = ''
     try {
       host = new URL(program.program_url).host
-    } catch {}
+    } catch (e){console.log(e)}
     if (!host) return []
     
     // Get programs from same source
@@ -144,7 +148,8 @@ export default function FundingDetail() {
       if (p.parentProgram) return false
       try {
         return new URL(p.source).host === host
-      } catch {
+      } catch (e){
+        console.log(e)
         return false
       }
     })
@@ -159,20 +164,9 @@ export default function FundingDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [program, programs, userProfile])
 
-  if (loading) {
+  if (loading || isFetching) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        <div className="max-w-5xl mx-auto px-4 py-8">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded w-32"></div>
-            <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded"></div>
-              <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-5/6"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FullPageLoader />
     )
   }
 
@@ -191,7 +185,7 @@ export default function FundingDetail() {
     )
   }
 
-  if (!program) {
+  if (!program && !isFetching) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center px-4">
         <Card className="max-w-md w-full">
@@ -279,7 +273,7 @@ export default function FundingDetail() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-500 flex items-center justify-center shadow-lg">
                       <Building2 className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -290,11 +284,11 @@ export default function FundingDetail() {
                         (
                           <div className="flex items-center gap-2 mt-1">
                             <Badge 
-                              variant={program.match_score > 50 ? "default" : "secondary"}
+                              variant={(program.ai_score != 0 ? program.ai_score : program.match_score || 0) > 50 ? "default" : "secondary"}
                               className="gap-1.5 text-xs"
                             >
                               <Sparkles className="w-3 h-3" />
-                              {program.match_score}% Match
+                              {(program.ai_score != 0 ? program.ai_score : program.match_score || 0)}% Match
                             </Badge>
                             <Badge variant="outline" className="text-xs">
                               Active
@@ -323,7 +317,7 @@ export default function FundingDetail() {
                     <h2 className="text-xl font-semibold">Overview</h2>
                   </div>
                   <div className="pl-10">
-                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap text-justify">
                       {program.program_summary || 'No summary available.'}
                     </p>
                   </div>
@@ -340,7 +334,7 @@ export default function FundingDetail() {
                     <h2 className="text-xl font-semibold">Eligibility Criteria</h2>
                   </div>
                   <div className="pl-10">
-                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+                    <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap text-justify">
                       {program.program_eligibility || 'Not specified.'}
                     </p>
                   </div>
@@ -591,7 +585,7 @@ export default function FundingDetail() {
                   {/* Circular Progress */}
                   <div className="flex justify-center py-2">
                     <CircularProgress 
-                      value={program.match_score} 
+                      value={(program.ai_score != 0 ? program.ai_score : program.match_score || 0)} 
                       size={100}
                       strokeWidth={10}
                     />
@@ -614,7 +608,35 @@ export default function FundingDetail() {
                                 >
                                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                     <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                                    <span className="text-xs md:text-sm text-foreground truncate font-medium">
+                                    <span className="text-xs md:text-sm text-foreground font-medium">
+                                      {item}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>)()
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-6">
+                        No breakdown available
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Eligibility Gaps */}
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold mb-3 text-foreground">Eligibility Gaps</h3>
+                    {program.eligibility_gaps && program.eligibility_gaps.length > 0 ? (
+                      (() => <div className="space-y-1.5">
+                            {program.eligibility_gaps.map((item, index) => {
+                              return (
+                                <div 
+                                  key={index}
+                                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-accent/50 transition-colors border border-transparent hover:border-border"
+                                >
+                                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                                    <CircleX className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                                    <span className="text-xs md:text-sm text-foreground font-medium">
                                       {item}
                                     </span>
                                   </div>
