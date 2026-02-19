@@ -25,7 +25,6 @@ import {
   checkPendingMatches, 
   getBusinessMatches 
 } from '@/lib/triggerMatching';
-import { subscribeToBusinessMatches } from '@/lib/realtimeMatching';
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -70,7 +69,8 @@ export default function Dashboard() {
       // Only trigger matching if nothing exists AND nothing is pending
       if (
         matchesResult.data?.length === 0 &&
-        !pendingResult.hasPending
+        pendingResult.hasPending && 
+        !refreshing
       ) {
         await triggerMatching();
         is_pending = true;
@@ -106,18 +106,13 @@ export default function Dashboard() {
 
       let interval;
 
-      const poll = async () => {
-        const status = await loadMatchStatus(); 
-        return status;
-      };
-
       const startPolling = async () => {
-        let isPending = await poll();
-        if (!isPending) return;
+        await loadMatchStatus();
+        if (!refreshing) return;
 
         interval = setInterval(async () => {
-          const stillPending = await poll();
-          if (!stillPending) {
+          await loadMatchStatus();
+          if (!refreshing) {
             clearInterval(interval);
           }
         }, 2000);
