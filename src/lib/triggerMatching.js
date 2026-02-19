@@ -55,6 +55,7 @@ export async function getBusinessMatches(businessId) {
     .from('matched_programs_view')
     .select('*')
     .eq('business_id', businessId)
+    .order('ai_score', { ascending: false })
     .order('match_score', { ascending: false });
 
   return { data, error };

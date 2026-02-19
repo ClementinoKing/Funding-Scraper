@@ -4,6 +4,7 @@ import { supabase } from './supabase'
  * Subscribe to real-time updates for a business's matches
  */
 export function subscribeToBusinessMatches(businessId, callback) {
+  console.log("Subscribing to channel", `business-matches-${businessId}`);
   const channel = supabase.channel(`business-matches-${businessId}`)
     .on(
       'postgres_changes',
@@ -27,6 +28,7 @@ export function subscribeToBusinessMatches(businessId, callback) {
         filter: `business_id=eq.${businessId}`,
       },
       (payload) => {
+        console.log("Subscription Result",payload);
         console.log('Pending match updated:', payload.new);
         if (!payload.new.needs_matching) {
           // Matching completed, trigger a refresh
@@ -37,6 +39,7 @@ export function subscribeToBusinessMatches(businessId, callback) {
     .subscribe();
 
   return () => {
+    console.log("Unsubscribing to channel", `business-matches-${businessId}`, channel);
     supabase.removeChannel(channel);
   };
 }
@@ -45,6 +48,7 @@ export function subscribeToBusinessMatches(businessId, callback) {
  * Subscribe to all business matches (admin view)
  */
 export function subscribeToAllMatches(callback) {
+  console.log("Subscribing to channel", 'all-business-matches');
   const channel = supabase.channel('all-business-matches')
     .on(
       'postgres_changes',
@@ -54,12 +58,14 @@ export function subscribeToAllMatches(callback) {
         table: 'program_matches_history',
       },
       (payload) => {
+        console.log("Subscription Result",payload);
         callback(payload);
       }
     )
     .subscribe();
 
   return () => {
+    console.log("Channel removed:", channel);
     supabase.removeChannel(channel);
   };
 }

@@ -48,12 +48,14 @@ export default function Dashboard() {
     const itemsPerPage = 12
   
     const loadMatchStatus = async () => {
+      let is_pending;
       setLoading(true);
       
       // Check pending status
       const pendingResult = await checkPendingMatches(userProfile.business_id);
       setPending(pendingResult.hasPending);
       console.log("Pending match status:", pendingResult);
+      is_pending = pendingResult.hasPending;
       
       // Load existing matches
       const matchesResult = await getBusinessMatches(userProfile.business_id);
@@ -64,19 +66,29 @@ export default function Dashboard() {
           setLastUpdated(matchesResult.data[0].created_at);
         }
       }
+
+      // Only trigger matching if nothing exists AND nothing is pending
+      if (
+        matchesResult.data?.length === 0 &&
+        !pendingResult.hasPending
+      ) {
+        await triggerMatching();
+        is_pending = true;
+      }
       
       setLoading(false);
+      return is_pending;
     };
   
     const triggerMatching = async (useAI = true) => {
       setRefreshing(true);
-      console.log("Triggered matching");
+      
       const result = await triggerBusinessMatching(userProfile.business_id, useAI);
-      console.log("Trigger matching result:", result);
+      
       if (result.success) {
-        setPending(true);
-        setTimeout(() => loadMatchStatus(), 500);
+        await loadMatchStatus();
       }
+
       setRefreshing(false);
     };
   
@@ -88,29 +100,36 @@ export default function Dashboard() {
         ? Math.round(matches.reduce((sum, m) => sum + m.match_score, 0) / matches.length)
         : 0,
     };
-
-    useEffect(() => {
-      if (pending) {
-        triggerMatching();
-      }
-    }, [pending]);
   
     useEffect(() => {
-      if(userProfile?.business_id) {
-        (async () => loadMatchStatus())();
-        
-        // Subscribe to real-time updates
-        const unsubscribe = subscribeToBusinessMatches(userProfile.business_id, (update) => {
-          if (update.type === 'matching_completed') {
-            loadMatchStatus();
-          } else {
-            setMatches(prev => [update, ...prev]);
+      if(!userProfile?.business_id) return;
+
+      let interval;
+
+      const poll = async () => {
+        const status = await loadMatchStatus(); 
+        return status;
+      };
+
+      const startPolling = async () => {
+        let isPending = await poll();
+        if (!isPending) return;
+
+        interval = setInterval(async () => {
+          const stillPending = await poll();
+          if (!stillPending) {
+            clearInterval(interval);
           }
-        });
-    
-        return () => unsubscribe();
-      }
-    }, [userProfile]);
+        }, 2000);
+      };
+
+      startPolling();
+
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+      
+    }, [userProfile?.business_id]);
 
   // Fetch user profile with caching
   useEffect(() => {
@@ -318,7 +337,7 @@ export default function Dashboard() {
           </div>
 
           {/* Status Message */}
-          {pending && (
+          {(pending) && (
             <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-md my-2">
               <Clock className="w-4 h-4" />
               <span className="text-sm">Matches are being processed. This may take a minute...</span>
@@ -330,7 +349,7 @@ export default function Dashboard() {
             {/* Programs List */}
             <div className="w-full">
               {/* Loading State */}
-              {(loading || profileLoading) && (
+              {(loading || profileLoading) && !refreshing && (
                 <div className={viewMode === 'list' ? 'space-y-4' : 'grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}>
                   {[...Array(profileLoading && userProfile ? 7 : 6)].map((_, i) => (
                     <Card key={i} className="h-full">
@@ -362,8 +381,15 @@ export default function Dashboard() {
                 </div>
               )}
 
+              {refreshing && (
+                <div className="flex items-center justify-center gap-2 text-amber-600 border border-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 py-16 rounded-md my-2 animate-pulse">
+                  <Clock className="w-6 h-6" />
+                  <span className="text-xl">Matches are being processed. This may take a minute...</span>
+                </div>
+              )}
+
               {/* Programs Grid/List */}
-              {!loading && !profileLoading && (
+              {!loading && !profileLoading && !refreshing && (
                 <>
                   {paginatedPrograms.length === 0 ? (
                     <EmptyState
