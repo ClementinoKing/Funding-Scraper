@@ -5,7 +5,6 @@ import { supabase } from './supabase'
  */
 export async function triggerBusinessMatching(businessId, useAI = true) {
   try {
-    console.log("Triggering matching for business:", businessId, "useAI:", useAI);
     // First mark the business as needing matching
     await supabase
       .from('pending_program_matches')
@@ -21,14 +20,12 @@ export async function triggerBusinessMatching(businessId, useAI = true) {
       body: {
         batch_size: 1,
         use_ai: useAI,
-        // priority_threshold: 2, // Only process high priority
+        priority_threshold: 3, // Only process high priority
       },
     });
-    console.log("Trigger response",data)
 
     return { success: !error, data, error };
   } catch (error) {
-    console.error('Error triggering matching:', error);
     return { success: false, error };
   }
 }
