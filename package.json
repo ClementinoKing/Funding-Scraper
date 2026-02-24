@@ -13,6 +13,7 @@
     "scrape": "node scripts/scrape_v2/index.mjs",
     "scrape:discover": "node scripts/scrape_v2/index.mjs --discover",
     "scrape:sequential": "node scripts/scrape_v2/index.mjs --sequential",
+    "scrape2": "node scripts/scrape_v2_bak/index.mjs",
     "transform": "node scripts/transform/index.mjs",
     "playwright:install": "playwright install --with-deps chromium"
   },
@@ -36,6 +37,7 @@
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "groq-sdk": "^0.37.0",
     "jsdom": "^27.3.0",
     "lucide-react": "^0.553.0",
     "node-fetch": "^3.3.2",

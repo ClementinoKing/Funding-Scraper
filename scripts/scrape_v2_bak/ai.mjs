@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import Groq from "groq-sdk";
 
 /**
  * Enhance scraped item with AI processing
@@ -183,31 +184,20 @@ async function enhanceWithOpenAI(systemPrompt, userPrompt, apiKey, config) {
  * Enhance with Groq
  */
 async function enhanceWithGroq(systemPrompt, userPrompt, apiKey, config) {
-  const model = config.aiModel || 'llama-3.3-70b-versatile'
-  
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [
-        { role: 'system', content: systemPrompt },
+  const model = config.aiModel || 'groq/compound'
+  const client = new Groq({ apiKey });
+
+  const response = await client.chat.completions.create({
+    messages: [
+      { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
-      ],
-      temperature: 0.1,
-      response_format: { type: 'json_object' }
-    })
-  })
+    ],
+    model,
+    temperature: 0.1,
+    response_format: { type: 'json_object' }
+  });
 
-  if (!response.ok) {
-    throw new Error(`Groq API error: ${response.statusText}`)
-  }
-
-  const data = await response.json()
-  const content = data.choices[0].message.content
+  const content = response.choices[0].message.content
 
   try {
     const parsed = JSON.parse(content)
