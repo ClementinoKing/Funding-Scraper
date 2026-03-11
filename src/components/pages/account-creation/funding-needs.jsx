@@ -195,14 +195,6 @@ export default function FundingNeeds({
                   className="w-full min-h-[100px] p-3 border rounded-md bg-background border-border focus:border-primary focus:ring-0 outline-none"
                   maxLength={400}
                 />
-                <div className="flex justify-between mt-1">
-                  <FieldDescription>
-                    AI will extract key details to improve matching
-                  </FieldDescription>
-                  <span className="text-xs text-muted-foreground">
-                    {formData.fundingDetails.length}/400
-                  </span>
-                </div>
               </Field>
             </div>
 

@@ -15,23 +15,53 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  User,
-  Building2,
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+} from "@/components/ui/combobox";
+import {
   TrendingUp,
-  DollarSign,
-  Loader2,
-  IdCard,
   Users,
 } from "lucide-react";
+import { useRef, Fragment } from "react";
+import BusinessTrading from "./business-metrics/business-trading";
+import FinanceBanking from "./business-metrics/finance-banking";
+
+const demographics = [
+  { id: "youth", label: "Youth-owned (18-35 years)" },
+  { id: "rural", label: "Based in rural area or township" },
+  // { id: 'coloured', label: 'Coloured-owned (51%+ Coloured ownership)' },
+  {
+    id: "disability",
+    label: "Disability-owned (51%+ people with disabilities)",
+  },
+  { id: "women", label: "Women-owned (51%+ women ownership)" },
+  { id: "black", label: "Black-owned (51%+ Black ownership)" },
+  // { id: 'indian', label: 'Indian-owned (51%+ Indian ownership)' },
+];
+
+const documents = [
+  "3-month bank statements",
+  "Audited financial statements",
+  "Tax returns",
+  "Monthly financial summaries",
+  "Customer contracts or purchase orders",
+];
 
 export default function BusinessMetrics({ profile, setProfile }) {
+  const anchor = useRef(null);
+  const anchor2 = useRef(null);
+
   return (
     <>
       <Card className="mb-6">
@@ -47,7 +77,7 @@ export default function BusinessMetrics({ profile, setProfile }) {
               <Label htmlFor="annualRevenue">Number of Employees</Label>
               <Select>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select" />
+                  <SelectValue placeholder="Select number of employees" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="just-me">Just me</SelectItem>
@@ -158,34 +188,37 @@ export default function BusinessMetrics({ profile, setProfile }) {
             <FieldDescription>
               Select all that apply to your business ownership
             </FieldDescription>
-            <div className="space-y-2 mt-2">
-              {[
-                { id: "youth", label: "Youth-owned (18-35 years)" },
-                { id: "rural", label: "Based in rural area or township" },
-                // { id: 'coloured', label: 'Coloured-owned (51%+ Coloured ownership)' },
-                {
-                  id: "disability",
-                  label: "Disability-owned (51%+ people with disabilities)",
-                },
-                { id: "women", label: "Women-owned (51%+ women ownership)" },
-                { id: "black", label: "Black-owned (51%+ Black ownership)" },
-                // { id: 'indian', label: 'Indian-owned (51%+ Indian ownership)' },
-              ].map((demo) => (
-                <div key={demo.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={demo.id}
-                    // checked={formData.demographics.includes(demo.id)}
-                    // onCheckedChange={(checked) => {
-                    // const newDemos = checked
-                    //     ? [...formData.demographics, demo.id]
-                    //     : formData.demographics.filter(d => d !== demo.id)
-                    // updateFormData('demographics', newDemos)
-                    // }}
-                  />
-                  <Label htmlFor={demo.id}>{demo.label}</Label>
-                </div>
-              ))}
-            </div>
+            <Combobox
+              multiple
+              autoHighlight
+              items={demographics}
+              // defaultValue={[demographics[0].id]}
+            >
+              <ComboboxChips ref={anchor} className="w-full">
+                <ComboboxValue>
+                  {(values) => (
+                    <Fragment>
+                      {values.map((value) => (
+                        <ComboboxChip key={value} className="capitalize">
+                          {value}
+                        </ComboboxChip>
+                      ))}
+                      <ComboboxChipsInput />
+                    </Fragment>
+                  )}
+                </ComboboxValue>
+              </ComboboxChips>
+              <ComboboxContent anchor={anchor}>
+                <ComboboxEmpty>No items found.</ComboboxEmpty>
+                <ComboboxList>
+                  {(item) => (
+                    <ComboboxItem key={item.id} value={item.id}>
+                      {item.label}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </Field>
 
           <Field>
@@ -193,189 +226,44 @@ export default function BusinessMetrics({ profile, setProfile }) {
             <FieldDescription>
               Select all documents you can provide
             </FieldDescription>
-            <div className="space-y-2 mt-2">
-              {[
-                "3-month bank statements",
-                "Audited financial statements",
-                "Tax returns",
-                "Monthly financial summaries",
-                "Customer contracts or purchase orders",
-                "I don't have any of these documents",
-              ].map((doc) => (
-                <div key={doc} className="flex items-center gap-2">
-                  <Checkbox
-                    id={doc}
-                    // checked={formData.financialDocuments.includes(doc)}
-                    // onCheckedChange={(checked) => {
-                    //     const newDocs = checked
-                    //     ? [...formData.financialDocuments, doc]
-                    //     : formData.financialDocuments.filter(d => d !== doc)
-                    //     updateFormData('financialDocuments', newDocs)
-                    // }}
-                  />
-                  <Label htmlFor={doc}>{doc}</Label>
-                </div>
-              ))}
-            </div>
+            <Combobox
+              multiple
+              autoHighlight
+              items={documents}
+              // defaultValue={[documents[0]]}
+            >
+              <ComboboxChips ref={anchor2} className="w-full">
+                <ComboboxValue>
+                  {(values) => (
+                    <Fragment>
+                      {values.map((value) => (
+                        <ComboboxChip key={value} className="capitalize">
+                          {value}
+                        </ComboboxChip>
+                      ))}
+                      <ComboboxChipsInput />
+                    </Fragment>
+                  )}
+                </ComboboxValue>
+              </ComboboxChips>
+              <ComboboxContent anchor={anchor2}>
+                <ComboboxEmpty>No items found.</ComboboxEmpty>
+                <ComboboxList>
+                  {(item) => (
+                    <ComboboxItem key={item} value={item}>
+                      {item}
+                    </ComboboxItem>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
           </Field>
         </CardContent>
       </Card>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Business Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="annualRevenue">Annual Revenue</Label>
-              <Input
-                id="annualRevenue"
-                value={profile?.annual_revenue || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    annual_revenue: e.target.value,
-                  })
-                }
-                placeholder="Annual revenue"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="numberOfEmployees">Number of Employees</Label>
-              <Input
-                id="numberOfEmployees"
-                value={profile?.number_of_employees || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    number_of_employees: e.target.value,
-                  })
-                }
-                placeholder="Number of employees"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="beeLevel">BEE Level</Label>
-            <Input
-              id="beeLevel"
-              value={profile?.bee_level || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, bee_level: e.target.value })
-              }
-              placeholder="BEE level"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <BusinessTrading profile={profile} setProfile={setProfile} />
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Business Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="annualRevenue">Annual Revenue</Label>
-              <Input
-                id="annualRevenue"
-                value={profile?.annual_revenue || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    annual_revenue: e.target.value,
-                  })
-                }
-                placeholder="Annual revenue"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="numberOfEmployees">Number of Employees</Label>
-              <Input
-                id="numberOfEmployees"
-                value={profile?.number_of_employees || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    number_of_employees: e.target.value,
-                  })
-                }
-                placeholder="Number of employees"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="beeLevel">BEE Level</Label>
-            <Input
-              id="beeLevel"
-              value={profile?.bee_level || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, bee_level: e.target.value })
-              }
-              placeholder="BEE level"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Business Metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="annualRevenue">Annual Revenue</Label>
-              <Input
-                id="annualRevenue"
-                value={profile?.annual_revenue || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    annual_revenue: e.target.value,
-                  })
-                }
-                placeholder="Annual revenue"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="numberOfEmployees">Number of Employees</Label>
-              <Input
-                id="numberOfEmployees"
-                value={profile?.number_of_employees || ""}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    number_of_employees: e.target.value,
-                  })
-                }
-                placeholder="Number of employees"
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="beeLevel">BEE Level</Label>
-            <Input
-              id="beeLevel"
-              value={profile?.bee_level || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, bee_level: e.target.value })
-              }
-              placeholder="BEE level"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      <FinanceBanking profile={profile} setProfile={setProfile} />
     </>
   );
 }

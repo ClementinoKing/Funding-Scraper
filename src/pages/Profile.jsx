@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -19,11 +19,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldTitle,
+} from "@/components/ui/field";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { useNavigate } from "react-router-dom";
 import { signOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -33,8 +43,9 @@ import {
   Building2,
   TrendingUp,
   DollarSign,
-  Loader2,
+  CheckCircle2,
   IdCard,
+  Loader2,
 } from "lucide-react";
 import {
   BUSINESS_TYPES,
@@ -44,6 +55,8 @@ import {
   FUNDING_PURPOSES,
 } from "@/constants/account-creation";
 import BusinessMetrics from "@/components/pages/profile/business-metrics";
+import FundingRequirements from "@/components/pages/profile/funding-requirements";
+import { cn } from "@/lib/utils";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -57,6 +70,14 @@ export default function Profile() {
     await signOut();
     navigate("/login", { replace: true });
   }
+
+  const handleSave = async () => {
+    setSaving(true);
+    setTimeout(() => {
+      alert("Nothing Happened! This is just a simulation!")
+      setSaving(false);
+    }, 2000);
+  };
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -481,6 +502,98 @@ export default function Profile() {
                       />
                     </div>
                   </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5 flex-1">
+                      <Label htmlFor="emailNotifications">Do you export?</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Sell products/services outside South Africa
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        // checked={settings.emailNotifications}
+                        // onChange={(e) => handleSettingChange('emailNotifications', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="space-y-0.5 flex-1">
+                    <Label>How seasonal is your business?</Label>
+                  </div>
+                  <div className="grid grid-cols-4 gap-4">
+                    <button
+                      onClick={() =>
+                        setProfile({ ...profile, seasonality: "none" })
+                      }
+                      className={cn(
+                        "p-2 rounded-lg border-2 text-left transition-all",
+                        profile?.seasonality === "none"
+                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                          : "border-border hover:border-primary",
+                        "flex justify-between items-start",
+                      )}
+                    >
+                      <h3 className="font-semibold">None</h3>
+                      {profile?.seasonality === "none" && (
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setProfile({ ...profile, seasonality: "low" })
+                      }
+                      className={cn(
+                        "p-2 rounded-lg border-2 text-left transition-all",
+                        profile?.seasonality === "low"
+                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                          : "border-border hover:border-primary",
+                        "flex justify-between items-start",
+                      )}
+                    >
+                      <h3 className="font-semibold">Low</h3>
+                      {profile?.seasonality === "low" && (
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setProfile({ ...profile, seasonality: "medium" })
+                      }
+                      className={cn(
+                        "p-2 rounded-lg border-2 text-left transition-all",
+                        profile?.seasonality === "medium"
+                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                          : "border-border hover:border-primary",
+                        "flex justify-between items-start",
+                      )}
+                    >
+                      <h3 className="font-semibold">Medium</h3>
+                      {profile?.seasonality === "medium" && (
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setProfile({ ...profile, seasonality: "high" })
+                      }
+                      className={cn(
+                        "p-2 rounded-lg border-2 text-left transition-all",
+                        profile?.seasonality === "high"
+                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
+                          : "border-border hover:border-primary",
+                        "flex justify-between items-start",
+                      )}
+                    >
+                      <h3 className="font-semibold">High</h3>
+                      {profile?.seasonality === "high" && (
+                        <CheckCircle2 className="w-5 h-5 text-primary" />
+                      )}
+                    </button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -491,20 +604,25 @@ export default function Profile() {
             </TabsContent>
 
             <TabsContent value="funding-requirements">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Funding Requirements</CardTitle>
-                  <CardDescription>
-                    Manage your account preferences and options. Customize your
-                    experience to fit your needs.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Configure notifications, security, and themes.
-                </CardContent>
-              </Card>
+              <FundingRequirements profile={profile} setProfile={setProfile} />
             </TabsContent>
           </Tabs>
+
+          <div className="flex justify-end gap-4">
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </div>
         </main>
       </div>
     </div>
