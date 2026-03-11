@@ -43,6 +43,7 @@ import {
   TIMELINE_OPTIONS,
   FUNDING_PURPOSES,
 } from "@/constants/account-creation";
+import BusinessMetrics from "@/components/pages/profile/business-metrics";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -486,59 +487,7 @@ export default function Profile() {
 
             <TabsContent value="business-metrics">
               {/* Business Metrics */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5" />
-                    Business Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="annualRevenue">Annual Revenue</Label>
-                      <Input
-                        id="annualRevenue"
-                        value={profile?.annual_revenue || ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            annual_revenue: e.target.value,
-                          })
-                        }
-                        placeholder="Annual revenue"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="numberOfEmployees">
-                        Number of Employees
-                      </Label>
-                      <Input
-                        id="numberOfEmployees"
-                        value={profile?.number_of_employees || ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            number_of_employees: e.target.value,
-                          })
-                        }
-                        placeholder="Number of employees"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="beeLevel">BEE Level</Label>
-                    <Input
-                      id="beeLevel"
-                      value={profile?.bee_level || ""}
-                      onChange={(e) =>
-                        setProfile({ ...profile, bee_level: e.target.value })
-                      }
-                      placeholder="BEE level"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <BusinessMetrics profile={profile} setProfile={setProfile} />
             </TabsContent>
 
             <TabsContent value="funding-requirements">
