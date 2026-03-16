@@ -94,7 +94,7 @@ async function runDiscoveryMode(browser) {
 
   for (const query of queries) {
     try {
-      const discovered = await discoverSourcesFromSearch(browser, query)
+      const discovered = await discoverSourcesFromSearch(query)
       logger.info(`Discovered ${discovered.length} potential sources from query: "${query.query}"`)
     } catch (error) {
       logger.error(`Failed to run search query "${query.query}":`, error)

@@ -455,13 +455,39 @@ export async function getSearchQueries() {
 /**
  * Add discovered source
  */
-export async function addDiscoveredSource(discoveryData) {
-  const { error } = await supabase
-    .from('discovered_sources')
-    .insert([discoveryData])
+export async function insertOrUpdateDiscoveredSource(discoveryData) {
+  for(const source of discoveryData) {
+    const { data: existing } = await supabase      
+      .from('discovered_sources')
+      .select('id')
+      .eq('url', source.url)
+      .maybeSingle()
 
-  if (error) {
-    throw new Error(`Failed to add discovered source: ${error.message}`)
+    if (existing) {
+      // Update existing discovery
+      const {error} =await supabase
+        .from('discovered_sources')
+        .update({
+          ...source,
+          status: 'pending'
+        })
+        .eq('id', existing.id)
+        if (error) {
+          console.error(`Failed to update discovery for ${source.url}:`, error.message)
+        }
+    } else {
+      // Insert new discovery
+      const {error} = await supabase
+        .from('discovered_sources')
+        .insert([{
+          ...source,
+          status: 'pending',
+          discovered_at: new Date().toISOString(),
+        }])
+        if (error) {
+          console.error(`Failed to insert discovery for ${source.url}:`, error.message)
+        }
+    }
   }
 }
 

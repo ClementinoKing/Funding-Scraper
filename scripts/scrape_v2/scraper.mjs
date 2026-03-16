@@ -9,6 +9,13 @@ import {
   looksLikeLoaderPage
 } from './utils.mjs'
 import { enhanceWithAI } from './ai.mjs'
+import { config as envConfig } from 'dotenv'
+import { config, getJson } from "serpapi";
+
+// Load environment variables
+envConfig();
+
+const serp_api_key = process.env.SERP_API_KEY
 
 const DEFAULT_TIMEOUT = 20000
 const DEFAULT_CONCURRENCY = 6
@@ -782,8 +789,64 @@ async function saveItems(items, sourceId) {
 /**
  * Discover new sources from search engines
  */
-export async function discoverSourcesFromSearch(browser, searchQuery) {
-  // This would use a search API or scrape search results
-  // Placeholder for now
-  return []
+export async function discoverSourcesFromSearch(searchQuery) {
+  config.api_key = serp_api_key;
+  
+  let results = [];
+  const timesToNext = Math.ceil(searchQuery.max_results/10) - 1;
+
+  let page = await getJson({
+      engine: searchQuery.search_engine || "google",
+      q: searchQuery.query,
+      location: "South Africa",
+  });
+
+  results = transformResult(page.organic_results, searchQuery.id);
+
+  for (let i = timesToNext; i < 0; i--) {
+    const nextUrl = new URL(page.serpapi_pagination.next);
+    const nextParams = Object.fromEntries(nextUrl.searchParams);
+    page = await getJson(nextParams);
+
+    results = [...results, ...transformResult(page.organic_results, searchQuery.id)];
+  }
+
+  saveDiscoveredSources(results);
+
+  return results
+}
+
+function getDomain (url_string) {
+  try {
+    const url_object = new URL(url_string);
+    return url_object.hostname.replace('www.','');
+  } catch (error) {
+    console.error("Invalid URL:", error);
+    return null; // Handle invalid URLs gracefully
+  }
+};
+
+function transformResult (resultSet, query_id) {
+    const data = [];
+    // search_query_id, url, title, snippet, domain, discovered_at, status, reviewed_at, review_notes
+    for(const result of resultSet) {
+        data.push({
+            search_query_id: query_id,
+            title: result.title,
+            url: result.link,
+            domain: getDomain(result.link),
+            snippet: result.snippet,
+        })
+    }
+    return data;
+}
+
+/**
+ * Save items to database
+ * This will be imported from database.mjs
+ */
+async function saveDiscoveredSources(items) {
+  // Placeholder - will be implemented in database.mjs
+  const { insertOrUpdateDiscoveredSource } = await import('./database.mjs')
+  return await insertOrUpdateDiscoveredSource(items)
 }
