@@ -57,7 +57,7 @@ export default function FundingReadyStatus({
                 <h3 className="font-medium text-muted-foreground">
                   Business Type
                 </h3>
-                <h3 className="text-primary font-semibold">
+                <h3 className="text-primary font-semibold capitalize">
                   {formData.businessType}
                 </h3>
               </div>
@@ -299,7 +299,7 @@ export default function FundingReadyStatus({
                 <h3 className="font-medium text-muted-foreground">
                   Where Money Goes To
                 </h3>
-                <h3 className="text-primary font-semibold">
+                <h3 className="text-primary font-semibold capitalize">
                   {formData.moneyGoesTo || 'N/A'}
                 </h3>
               </div>
@@ -342,7 +342,7 @@ export default function FundingReadyStatus({
                 <h3 className="font-medium text-muted-foreground">
                   Finance Tracking
                 </h3>
-                <div className="text-primary font-semibold mt-1">
+                <div className="text-primary font-semibold mt-1 capitalize">
                   {formData.trackFinances || 'N/A'}
                 </div>
               </div>
@@ -387,7 +387,7 @@ export default function FundingReadyStatus({
                 </h3>
               </div>
 
-              <div className=" pb-1 border-b">
+              <div className=" pb-1 border-b hidden">
                 <h3 className="font-medium text-muted-foreground">
                   Owner Background
                 </h3>

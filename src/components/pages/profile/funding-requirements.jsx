@@ -54,14 +54,6 @@ import {
 } from "@/constants/account-creation";
 import { useRef, Fragment } from "react";
 
-const documents = [
-  "3-month bank statements",
-  "Audited financial statements",
-  "Tax returns",
-  "Monthly financial summaries",
-  "Customer contracts or purchase orders",
-];
-
 export default function FinanceBanking({ profile, setProfile }) {
   const anchor2 = useRef(null);
   return (
@@ -84,14 +76,14 @@ export default function FinanceBanking({ profile, setProfile }) {
             <div className="text-center p-6 border-2 border-dashed rounded-lg">
               <div className="text-4xl font-bold text-primary mb-2 flex items-center justify-center gap-2">
                 <NumericFormat
-                  value={profile?.fundingAmount}
+                  value={profile?.funding_amount_exact}
                   onValueChange={(value) => {
                     setProfile({
                       ...profile,
-                      fundingAmount: value.floatValue || 0,
-                      fundingMinAmount:
+                      funding_amount_exact: value.floatValue || 0,
+                      funding_amount_min:
                         value.floatValue - value.floatValue * 0.1,
-                      fundingMaxAmount:
+                      funding_amount_max:
                         value.floatValue + value.floatValue * 0.1,
                     });
                   }}
@@ -111,8 +103,8 @@ export default function FinanceBanking({ profile, setProfile }) {
                 <Info className="w-4 h-4" /> Selected amount falls in the range:
               </div>
               <div className="font-semibold text-lg">
-                R {profile?.fundingMinAmount?.toLocaleString()} - R{" "}
-                {profile?.fundingMaxAmount?.toLocaleString()}
+                R {profile?.funding_amount_min?.toLocaleString()} - R{" "}
+                {profile?.funding_amount_max?.toLocaleString()}
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Lightbulb className="w-4 h-4" />
@@ -137,11 +129,11 @@ export default function FinanceBanking({ profile, setProfile }) {
                 <button
                   key={option.value}
                   onClick={() =>
-                    setProfile({ ...profile, fundingTimeline: option.value })
+                    setProfile({ ...profile, timeline_band: option.value })
                   }
                   className={cn(
                     "p-4 rounded-lg border-2 text-left transition-all",
-                    profile?.fundingTimeline === option.value
+                    profile?.timeline_band === option.value
                       ? "border-primary bg-primary-foreground dark:bg-primary/20"
                       : "border-border hover:border-primary",
                   )}
@@ -172,7 +164,7 @@ export default function FinanceBanking({ profile, setProfile }) {
               <Combobox
                 multiple
                 autoHighlight
-                items={documents}
+                items={FUNDING_PURPOSES}
                 // defaultValue={[documents[0]]}
               >
                 <ComboboxChips ref={anchor2} className="w-full">
@@ -208,9 +200,9 @@ export default function FinanceBanking({ profile, setProfile }) {
                 <Info className="w-4 h-4 text-muted-foreground" />
               </div>
               <textarea
-                value={profile?.fundingDetails}
+                value={profile?.funding_description}
                 onChange={(e) =>
-                  setProfile({ ...profile, fundingDetails: e.target.value })
+                  setProfile({ ...profile, funding_description: e.target.value })
                 }
                 placeholder="E.g., R250k for refrigerated delivery van in KZN + R120k winter stock; POS upgrade for card acceptance."
                 className="w-full min-h-[100px] p-3 border rounded-md bg-background border-border focus:border-primary focus:ring-0 outline-none"
@@ -235,9 +227,10 @@ export default function FinanceBanking({ profile, setProfile }) {
                 How often would you prefer to repay funding?
               </FieldLabel>
               <Select
-                value={profile?.repaymentFrequency}
+                defaultValue={profile?.repayment_frequency}
+                value={profile?.repayment_frequency}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, repaymentFrequency: value })
+                  setProfile({ ...profile, repayment_frequency: value })
                 }
               >
                 <SelectTrigger>
@@ -255,9 +248,10 @@ export default function FinanceBanking({ profile, setProfile }) {
             <Field>
               <FieldLabel>How long do you want to repay over?</FieldLabel>
               <Select
-                value={profile?.repaymentDuration}
+                defaultValue={profile?.repayment_period}
+                value={profile?.repayment_period}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, repaymentDuration: value })
+                  setProfile({ ...profile, repayment_period: value })
                 }
               >
                 <SelectTrigger>
@@ -278,9 +272,10 @@ export default function FinanceBanking({ profile, setProfile }) {
                 Are you open to giving investors a share of your business?
               </FieldLabel>
               <Select
-                value={profile?.openToEquity}
+                defaultValue={profile?.repayment_investor_share}
+                value={profile?.repayment_investor_share}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, openToEquity: value })
+                  setProfile({ ...profile, repayment_investor_share: value })
                 }
               >
                 <SelectTrigger>
@@ -303,9 +298,10 @@ export default function FinanceBanking({ profile, setProfile }) {
                 Can you provide security/collateral for funding?
               </FieldLabel>
               <Select
-                value={profile?.canProvideCollateral}
+                defaultValue={profile?.repayment_collateral}
+                value={profile?.repayment_collateral}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, canProvideCollateral: value })
+                  setProfile({ ...profile, repayment_collateral: value })
                 }
               >
                 <SelectTrigger>
@@ -326,9 +322,10 @@ export default function FinanceBanking({ profile, setProfile }) {
                 Does your business have a specific impact focus?
               </FieldLabel>
               <Select
-                value={profile?.impactFocus}
+                defaultValue={profile?.impact_focus}
+                value={profile?.impact_focus}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, impactFocus: value })
+                  setProfile({ ...profile, impact_focus: value })
                 }
               >
                 <SelectTrigger>

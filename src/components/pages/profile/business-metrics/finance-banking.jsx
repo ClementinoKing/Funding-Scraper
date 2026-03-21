@@ -64,34 +64,34 @@ export default function FinanceBanking({ profile, setProfile }) {
           </FieldDescription>
           <div className="grid grid-cols-2 gap-4">
             <button
-              onClick={() => setProfile({ ...profile, moneyGoesTo: "bank" })}
+              onClick={() => setProfile({ ...profile, finance_type: "bank" })}
               className={cn(
                 "p-6 rounded-lg border-2 text-left transition-all",
-                profile?.moneyGoesTo === "bank"
+                profile?.finance_type === "bank"
                   ? "border-primary bg-primary-foreground dark:bg-primary/20"
                   : "border-border hover:border-primary",
               )}
             >
               <div className="flex justify-between items-start mb-2">
                 <Building2 className="w-8 h-8 text-primary" />
-                {profile?.moneyGoesTo === "bank" && (
+                {profile?.finance_type === "bank" && (
                   <CheckCircle2 className="w-5 h-5 text-primary" />
                 )}
               </div>
               <h3 className="font-semibold">I bank my money</h3>
             </button>
             <button
-              onClick={() => setProfile({ ...profile, moneyGoesTo: "cash" })}
+              onClick={() => setProfile({ ...profile, finance_type: "cash" })}
               className={cn(
                 "p-6 rounded-lg border-2 text-left transition-all",
-                profile?.moneyGoesTo === "cash"
+                profile?.finance_type === "cash"
                   ? "border-primary bg-primary-foreground dark:bg-primary/20"
                   : "border-border hover:border-primary",
               )}
             >
               <div className="flex justify-between items-start mb-2">
                 <Banknote className="w-8 h-8 text-primary mb-2" />
-                {profile?.moneyGoesTo === "cash" && (
+                {profile?.finance_type === "cash" && (
                   <CheckCircle2 className="w-5 h-5 text-primary" />
                 )}
               </div>
@@ -104,8 +104,9 @@ export default function FinanceBanking({ profile, setProfile }) {
           <Field>
             <FieldLabel>Which bank do you use?</FieldLabel>
             <Select
-              value={profile?.bank}
-              // onValueChange={(value) => updateFormData('bank', value)}
+              defaultValue={profile?.bank_name}
+              value={profile?.bank_name}
+              onValueChange={(value) => setProfile({ ...profile, bank_name: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select bank" />
@@ -124,8 +125,9 @@ export default function FinanceBanking({ profile, setProfile }) {
           <Field>
             <FieldLabel>How long have you had this account?</FieldLabel>
             <Select
-              value={profile?.accountDuration}
-              // onValueChange={(value) => updateFormData('accountDuration', value)}
+              defaultValue={profile?.account_age}
+              value={profile?.account_age}
+              onValueChange={(value) => setProfile({ ...profile, account_age: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select duration" />
@@ -142,8 +144,9 @@ export default function FinanceBanking({ profile, setProfile }) {
           <Field>
             <FieldLabel>What's your monthly income/revenue?</FieldLabel>
             <Select
-              value={profile?.monthlyIncomeRange}
-              // onValueChange={(value) => updateFormData('monthlyIncomeRange', value)}
+              defaultValue={profile?.monthly_income_band}
+              value={profile?.monthly_income_band}
+              onValueChange={(value) => setProfile({ ...profile, monthly_income_band: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select range" />
@@ -163,8 +166,9 @@ export default function FinanceBanking({ profile, setProfile }) {
           <Field>
             <FieldLabel>How do you track your finances?</FieldLabel>
             <Select
-              value={profile?.trackFinances}
-              // onValueChange={(value) => updateFormData('trackFinances', value)}
+              defaultValue={profile?.tracking_method}
+              value={profile?.tracking_method}
+              onValueChange={(value) => setProfile({ ...profile, tracking_method: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select method" />

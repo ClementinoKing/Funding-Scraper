@@ -4,6 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldLabel, FieldDescription } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { Building2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function BusinessTrading({ profile, setProfile }) {
   return (
@@ -18,47 +27,66 @@ export default function BusinessTrading({ profile, setProfile }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="monthlyCustomers">Customers served monthly</Label>
-            <Input
-              id="monthlyCustomers"
-              value={profile?.monthly_customers || ""}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  annual_revenue: e.target.value,
-                })
+            <Select
+              defaultValue={profile?.monthly_customers}
+              value={profile?.monthly_customers}
+              onValueChange={(value) =>
+                setProfile({ ...profile, monthly_customers: value })
               }
-              placeholder="Annual revenue"
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1-10">1-10 customers</SelectItem>
+                <SelectItem value="11-50">11-50 customers</SelectItem>
+                <SelectItem value="51-100">51-100 customers</SelectItem>
+                <SelectItem value="100+">100+ customers</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="biggestCustomerRevenue">
               Revenue from biggest customer
             </Label>
-            <Input
-              id="biggestCustomerRevenue"
-              value={profile?.biggest_customer_revenue || ""}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  biggest_customer_revenue: e.target.value,
-                })
+            <Select
+              defaultValue={profile?.revenue_from_biggest_customer}
+              value={profile?.revenue_from_biggest_customer}
+              onValueChange={(value) =>
+                setProfile({ ...profile, revenue_from_biggest_customer: value })
               }
-              placeholder="% of revenue from your biggest customer"
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select percentage" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0-10">0-10%</SelectItem>
+                <SelectItem value="11-25">11-25%</SelectItem>
+                <SelectItem value="26-50">26-50%</SelectItem>
+                <SelectItem value="50+">50%+</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="paymentTerms">Payment period from customers</Label>
-            <Input
-              id="paymentTerms"
-              value={profile?.payment_terms || ""}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  payment_terms: e.target.value,
-                })
+            <Select
+              defaultValue={profile?.customer_payment_speed}
+              value={profile?.customer_payment_speed}
+              onValueChange={(value) =>
+                setProfile({ ...profile, customer_payment_speed: value })
               }
-              placeholder="Payment terms"
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select timeframe" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="immediate">Immediate</SelectItem>
+                <SelectItem value="7-days">7 days</SelectItem>
+                <SelectItem value="30-days">30 days</SelectItem>
+                <SelectItem value="60-days">60 days</SelectItem>
+                <SelectItem value="90+">90+ days</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <Field>

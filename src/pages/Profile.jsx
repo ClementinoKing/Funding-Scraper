@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -7,56 +7,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import {
-  Field,
-  FieldContent,
-  FieldDescription,
-  FieldLabel,
-  FieldTitle,
-} from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-
 import { useNavigate } from "react-router-dom";
 import { signOut } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { clearUserProfileCache } from "@/lib/userProfile";
-import {
-  User,
-  Building2,
-  TrendingUp,
-  DollarSign,
-  CheckCircle2,
-  IdCard,
-  Loader2,
-} from "lucide-react";
-import {
-  BUSINESS_TYPES,
-  PROVINCES,
-  INDUSTRIES,
-  TIMELINE_OPTIONS,
-  FUNDING_PURPOSES,
-} from "@/constants/account-creation";
+import { User, Building2, TrendingUp, DollarSign, Loader2 } from "lucide-react";
 import BusinessMetrics from "@/components/pages/profile/business-metrics";
 import FundingRequirements from "@/components/pages/profile/funding-requirements";
-import { cn } from "@/lib/utils";
+import BusinessDetail from "@/components/pages/profile/business-detail";
+import PersonalDetails from "@/components/pages/profile/personal-details";
+import { toast } from "sonner";
+import {
+  saveBusinessDetails,
+  saveBusinessMetrics,
+  savePersonalDetails,
+  saveFundingRequirements,
+} from "../services/profile-saving.service";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -64,7 +35,6 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
-  const [authUser, setAuthUser] = useState(null);
 
   async function logout() {
     await signOut();
@@ -73,11 +43,80 @@ export default function Profile() {
 
   const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
-      alert("Nothing Happened! This is just a simulation!")
-      setSaving(false);
-    }, 2000);
+    toast.promise(
+      Promise.allSettled([
+        savePersonalDetails(profile),
+        saveBusinessDetails(profile),
+        saveBusinessMetrics(profile),
+        saveFundingRequirements(profile),
+      ]),
+      {
+        loading: "Saving Progress...",
+        success: () => {
+          setSaving(false);
+          return "Changes saved successfully!";
+        },
+        error: (error) => {
+          setSaving(false)
+          return `Error saving progress: ${error.message || error}`;
+        },
+      },
+    );
   };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("business_profile_view")
+          .select("*")
+          .single();
+        if (error) {
+          setError("Failed to load profile");
+        } else {
+          setProfile(data);
+          console.log(data);
+        }
+      } catch (error) {
+        console.log(error);
+        setError("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex bg-background">
+        <Sidebar onLogout={logout} />
+        <div className="flex-1 flex flex-col pb-16 md:pb-0">
+          <Header onLogout={logout} />
+          <main className="flex-1 px-4 md:px-6 py-6 max-w-4xl mx-auto w-full">
+            <Breadcrumbs items={[{ label: 'Profile' }]} className="mb-6" />
+            <div className="mb-6">
+              <Skeleton className="h-9 w-64 mb-2" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-48" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          </main>
+        </div>
+        <MobileNav />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -96,8 +135,14 @@ export default function Profile() {
             </p>
           </div>
 
+          {error && (
+            <div className="mb-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
+              {error}
+            </div>
+          )}
+
           <Tabs defaultValue="personal" className="w-full">
-            <TabsList className="flex ">
+            <TabsList className="flex gap-2 flex-wrap h-fit">
               <TabsTrigger
                 className="flex-1 flex gap-1 items-center"
                 value="personal"
@@ -125,477 +170,12 @@ export default function Profile() {
             </TabsList>
 
             <TabsContent value="personal">
-              {/* Personal Information */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    Personal Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ownerFullName">Owner Full Name</Label>
-                    <Input
-                      id="ownerFullName"
-                      value={profile?.owner_full_name || ""}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          owner_full_name: e.target.value,
-                        })
-                      }
-                      placeholder="Enter your full name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profile?.email || authUser?.email || ""}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={profile?.phone || ""}
-                        onChange={(e) =>
-                          setProfile({ ...profile, phone: e.target.value })
-                        }
-                        placeholder="+27 12 345 6789"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Date of Birth</Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={profile?.dob ? profile?.dob.split("T")[0] : ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            dob: e.target.value || null,
-                          })
-                        }
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Highest Qualification</Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={profile?.dob ? profile?.dob.split("T")[0] : ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            dob: e.target.value || null,
-                          })
-                        }
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Identification & Location */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <IdCard className="h-5 w-5" />
-                    Identification & Location
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">ID Type</Label>
-                      <Select
-                        defaultValue={profile?.idType || "sa-id"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, idType: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select an ID Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>ID Types</SelectLabel>
-                            <SelectItem value="sa-id">SA ID</SelectItem>
-                            <SelectItem value="passport">Passport</SelectItem>
-                            <SelectItem value="asylum-seeker-permit">
-                              Asylum Seeker Permit
-                            </SelectItem>
-                            <SelectItem value="work-permit">
-                              Work Permit
-                            </SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">ID Number</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={profile?.phone || ""}
-                        onChange={(e) =>
-                          setProfile({ ...profile, phone: e.target.value })
-                        }
-                        placeholder="+27 12 345 6789"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Country</Label>
-                      <Select
-                        defaultValue={profile?.country || "south-africa"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, country: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Countries</SelectLabel>
-                            <SelectItem value="south-africa">
-                              South Africa
-                            </SelectItem>
-                            <SelectItem value="botswana">Botswana</SelectItem>
-                            <SelectItem value="eswatini">Eswatini</SelectItem>
-                            <SelectItem value="lesotho">Lesotho</SelectItem>
-                            <SelectItem value="zimbabwe">Zimbabwe</SelectItem>
-                            <SelectItem value="mozambique">
-                              Mozambique
-                            </SelectItem>
-                            <SelectItem value="zambia">Zambia</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Province</Label>
-                      <Select
-                        defaultValue={profile?.province || "gauteng"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, province: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a province" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Provinces</SelectLabel>
-                            {PROVINCES.map((province) => (
-                              <SelectItem key={province} value={province}>
-                                {province}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="postal-code">Postal Code</Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={profile?.dob ? profile?.dob.split("T")[0] : ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            dob: e.target.value || null,
-                          })
-                        }
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <PersonalDetails profile={profile} setProfile={setProfile} />
             </TabsContent>
 
             <TabsContent value="business-details">
               {/* Business Information */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Business Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name</Label>
-                    <Input
-                      id="businessName"
-                      value={profile?.business_name || ""}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          business_name: e.target.value,
-                        })
-                      }
-                      placeholder="Business name"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="businessType">Business Type</Label>
-                      <Select
-                        defaultValue={profile?.business_type || "registered"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, business_type: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a business type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Business Types</SelectLabel>
-                            <SelectItem value="registered">
-                              Registered
-                            </SelectItem>
-                            <SelectItem value="not-registered">
-                              Not Registered
-                            </SelectItem>
-                            <SelectItem value="spaza">Spaza</SelectItem>
-                            <SelectItem value="just-an-idea">
-                              Just an Idea
-                            </SelectItem>
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="industry">Industry</Label>
-                      <Select
-                        defaultValue={profile?.industry || "Technology & IT"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, industry: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select an industry" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Industries</SelectLabel>
-                            {INDUSTRIES.map((industry) => (
-                              <SelectItem key={industry} value={industry}>
-                                {industry}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyRegistrationNumber">
-                      Company Registration Number
-                    </Label>
-                    <Input
-                      id="companyRegistrationNumber"
-                      value={profile?.company_registration_number || ""}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          company_registration_number: e.target.value,
-                        })
-                      }
-                      placeholder="CIPC registration number"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Province</Label>
-                      <Select
-                        defaultValue={profile?.province || "gauteng"}
-                        onValueChange={(value) =>
-                          setProfile({ ...profile, province: value })
-                        }
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select a province" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectLabel>Provinces</SelectLabel>
-                            {PROVINCES.map((province) => (
-                              <SelectItem key={province} value={province}>
-                                {province}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="postal-code">Postal Code</Label>
-                      <Input
-                        id="dob"
-                        type="date"
-                        value={profile?.dob ? profile?.dob.split("T")[0] : ""}
-                        onChange={(e) =>
-                          setProfile({
-                            ...profile,
-                            dob: e.target.value || null,
-                          })
-                        }
-                        max={new Date().toISOString().split("T")[0]}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="physicalAddress">Physical Address</Label>
-                    <Input
-                      id="physicalAddress"
-                      value={profile?.physical_address || ""}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          physical_address: e.target.value,
-                        })
-                      }
-                      placeholder="Physical address"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="website">Website</Label>
-                      <Input
-                        id="website"
-                        type="url"
-                        value={profile?.website || ""}
-                        onChange={(e) =>
-                          setProfile({ ...profile, website: e.target.value })
-                        }
-                        placeholder="https://www.example.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="taxNumber">Tax Number</Label>
-                      <Input
-                        id="taxNumber"
-                        value={profile?.tax_number || ""}
-                        onChange={(e) =>
-                          setProfile({ ...profile, tax_number: e.target.value })
-                        }
-                        placeholder="Tax number"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5 flex-1">
-                      <Label htmlFor="emailNotifications">Do you export?</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Sell products/services outside South Africa
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        // checked={settings.emailNotifications}
-                        // onChange={(e) => handleSettingChange('emailNotifications', e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  <div className="space-y-0.5 flex-1">
-                    <Label>How seasonal is your business?</Label>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4">
-                    <button
-                      onClick={() =>
-                        setProfile({ ...profile, seasonality: "none" })
-                      }
-                      className={cn(
-                        "p-2 rounded-lg border-2 text-left transition-all",
-                        profile?.seasonality === "none"
-                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
-                          : "border-border hover:border-primary",
-                        "flex justify-between items-start",
-                      )}
-                    >
-                      <h3 className="font-semibold">None</h3>
-                      {profile?.seasonality === "none" && (
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        setProfile({ ...profile, seasonality: "low" })
-                      }
-                      className={cn(
-                        "p-2 rounded-lg border-2 text-left transition-all",
-                        profile?.seasonality === "low"
-                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
-                          : "border-border hover:border-primary",
-                        "flex justify-between items-start",
-                      )}
-                    >
-                      <h3 className="font-semibold">Low</h3>
-                      {profile?.seasonality === "low" && (
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        setProfile({ ...profile, seasonality: "medium" })
-                      }
-                      className={cn(
-                        "p-2 rounded-lg border-2 text-left transition-all",
-                        profile?.seasonality === "medium"
-                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
-                          : "border-border hover:border-primary",
-                        "flex justify-between items-start",
-                      )}
-                    >
-                      <h3 className="font-semibold">Medium</h3>
-                      {profile?.seasonality === "medium" && (
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() =>
-                        setProfile({ ...profile, seasonality: "high" })
-                      }
-                      className={cn(
-                        "p-2 rounded-lg border-2 text-left transition-all",
-                        profile?.seasonality === "high"
-                          ? "border-primary bg-primary-foreground dark:bg-primary/20"
-                          : "border-border hover:border-primary",
-                        "flex justify-between items-start",
-                      )}
-                    >
-                      <h3 className="font-semibold">High</h3>
-                      {profile?.seasonality === "high" && (
-                        <CheckCircle2 className="w-5 h-5 text-primary" />
-                      )}
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
+              <BusinessDetail profile={profile} setProfile={setProfile} />
             </TabsContent>
 
             <TabsContent value="business-metrics">

@@ -16,9 +16,9 @@ export const saveBusinessDetails = async (formData) => {
     registration_date: formData.registration_date,
     business_type: formData.businessType,
     business_age_band: formData.business_age_band,
-    // employees_band: '', // to be filled at a later step
-    // website: '', // to be filled at a later step
-    // impact_focus: '', // to be filled at a later step
+    employees_band: formData.employees_band ?? null,
+    website: formData.website ?? null,
+    impact_focus: formData.impact_focus ?? null,
   };
 
   const locationData = {
@@ -148,9 +148,9 @@ export const saveFundingNeeds = async (formData) => {
 
   const fundingNeedsData = {
     business_id: business.id,
-    amount_mode: "exact",
-    // amount_min: ,
-    // amount_max: ,
+    amount_mode: "range",
+    amount_min: formData.fundingMinAmount,
+    amount_max: formData.fundingMaxAmount,
     amount_exact: formData.fundingAmount,
     timeline_band: formData.fundingTimeline,
     description: formData.fundingDetails,
@@ -203,14 +203,6 @@ export const saveBusinessAndTrading = async (formData) => {
   if (!business) {
     throw new Error("Business profile not found");
   }
-
-  // Section 1: Business & Trading
-    // mainCustomers: "",
-    // monthlyCustomers: "",
-    // revenueFromBiggestCustomer: "",
-    // customerPaymentSpeed: "",
-    // averageDaysToGetPaid: "",
-    // paymentMethods: [],
 
   const businessDetails = {
     id: business.id,

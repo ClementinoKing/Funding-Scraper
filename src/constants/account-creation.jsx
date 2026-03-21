@@ -68,6 +68,7 @@ export const FUNDING_PURPOSES = [
   'Research & Development',
   'Debt consolidation',
   'Expansion / Growth',
+  'Other'
 ]
 
 export const TIMELINE_OPTIONS = [

@@ -38,13 +38,13 @@ export default function Register() {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('profile_completed')
-            .eq('user_id', user.id)
+            .from('onboarding_sessions')
+            .select('is_completed')
+            .eq('profile_id', user.id)
             .single()
           
           // If profile exists and is completed, redirect to dashboard
-          if (profile && profile.profile_completed) {
+          if (profile && profile.is_completed) {
             navigate('/dashboard', { replace: true })
           } else {
             // User is authenticated but no profile, redirect to account creation
@@ -484,7 +484,7 @@ export default function Register() {
               )}
 
               {/* WhatsApp Updates Checkbox */}
-              <div className="mt-4 p-4 sm:p-5 rounded-lg border bg-muted/30 dark:bg-muted/20 border-border/50 transition-colors hover:bg-muted/40 dark:hover:bg-muted/30">
+              <div className="hidden mt-4 p-4 sm:p-5 rounded-lg border bg-muted/30 dark:bg-muted/20 border-border/50 transition-colors hover:bg-muted/40 dark:hover:bg-muted/30">
                 <label 
                   htmlFor="whatsapp-updates-register" 
                   className="flex items-start gap-3 cursor-pointer min-h-[44px]"
@@ -530,14 +530,14 @@ export default function Register() {
                         : 'Continue'}
                   </Button>
                   {registrationMethod === 'email' && (
-                    <Button variant="outline" type="button" disabled={loading} className="w-full">
+                    <Button variant="outline" type="button" disabled={loading} className="w-full hidden">
                       Sign up with Google
                     </Button>
                   )}
                 </div>
-                <FieldDescription className="text-center mt-4">
-                  Already have an account? <Link to="/login" className="hover:underline">Sign in</Link>
-                </FieldDescription>
+                <div className="text-center mt-4 text-sm">
+                  Already have an account? <Link to="/login" className="hover:underline font-semibold">Sign in</Link>
+                </div>
               </div>
             </Tabs>
           </form>

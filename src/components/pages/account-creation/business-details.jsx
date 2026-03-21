@@ -62,7 +62,7 @@ export default function BusinessDetails({
                         onChange={(e) => updateFormData('companyRegistrationNumber', e.target.value)}
                         placeholder="3243521324323112"
                       />
-                      <Button variant="outline">
+                      <Button variant="outline" className="hidden">
                         <Search className="w-4 h-4 mr-2" />
                         Lookup
                       </Button>
@@ -174,7 +174,7 @@ export default function BusinessDetails({
                 </Field>
 
                 {formData.industry === 'Agriculture & Agro-processing' && (
-                  <Field>
+                  <Field className="hidden">
                     <FieldLabel>What type of agriculture business? *</FieldLabel>
                     <div className="flex flex-wrap gap-2">
                       {['Horticulture', 'Crop farming', 'Livestock', 'Agri-inputs', 'Agro-processing'].map(option => (

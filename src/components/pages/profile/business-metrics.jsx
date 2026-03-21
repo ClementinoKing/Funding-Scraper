@@ -75,7 +75,13 @@ export default function BusinessMetrics({ profile, setProfile }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="annualRevenue">Number of Employees</Label>
-              <Select>
+              <Select
+                defaultValue={profile?.team_size}
+                value={profile?.team_size}
+                onValueChange={(value) =>
+                  setProfile({ ...profile, team_size: value })
+                }
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select number of employees" />
                 </SelectTrigger>
@@ -92,9 +98,10 @@ export default function BusinessMetrics({ profile, setProfile }) {
             <div className="space-y-2">
               <Label htmlFor="numberOfEmployees">Stage of Business</Label>
               <Select
-                defaultValue={profile?.stageOfBusiness || "pre_revenue"}
+                defaultValue={profile?.team_stage}
+                value={profile?.team_stage}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, stageOfBusiness: value })
+                  setProfile({ ...profile, team_stage: value })
                 }
               >
                 <SelectTrigger className="w-full">
@@ -116,9 +123,10 @@ export default function BusinessMetrics({ profile, setProfile }) {
                 Are you up-to-date with SARS
               </Label>
               <Select
-                defaultValue={profile?.sarsStatus || "maybe"}
+                defaultValue={profile?.sars_status}
+                value={profile?.sars_status}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, sarsStatus: value })
+                  setProfile({ ...profile, sars_status: value })
                 }
               >
                 <SelectTrigger className="w-full">
@@ -137,9 +145,10 @@ export default function BusinessMetrics({ profile, setProfile }) {
             <div className="space-y-2">
               <Label htmlFor="numberOfEmployees">Are you VAT registered?</Label>
               <Select
-                defaultValue={profile?.vatStatus || "no"}
+                defaultValue={profile?.vat_status}
+                value={profile?.vat_status}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, vatStatus: value })
+                  setProfile({ ...profile, vat_status: value })
                 }
               >
                 <SelectTrigger className="w-full">
@@ -157,9 +166,10 @@ export default function BusinessMetrics({ profile, setProfile }) {
             <div className="space-y-2">
               <Label htmlFor="numberOfEmployees">B-BBEE Certification</Label>
               <Select
-                defaultValue={profile?.beeCertification || "none"}
+                defaultValue={profile?.bbee_certification}
+                value={profile?.bbee_certification}
                 onValueChange={(value) =>
-                  setProfile({ ...profile, beeCertification: value })
+                  setProfile({ ...profile, bbee_certification: value })
                 }
               >
                 <SelectTrigger className="w-full">

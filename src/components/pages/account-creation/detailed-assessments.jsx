@@ -255,7 +255,7 @@ export default function DetailedAssessments({
                     </Select>
                   </Field>
 
-                  <Field>
+                  <Field className="hidden">
                     <FieldLabel>What's your background as the owner/founder?</FieldLabel>
                     <FieldDescription>Choose up to 2 that best describe you</FieldDescription>
                     <div className="flex flex-wrap gap-2 mt-2">

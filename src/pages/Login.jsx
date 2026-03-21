@@ -37,13 +37,13 @@ export default function Login() {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('profile_completed')
-            .eq('user_id', user.id)
+            .from('onboarding_sessions')
+            .select('is_completed')
+            .eq('profile_id', user.id)
             .single()
           
           // If no profile or profile not completed, redirect to account creation
-          if (!profile || !profile.profile_completed) {
+          if (!profile || !profile.is_completed) {
             navigate('/account-creation', { replace: true })
           } else {
             navigate('/dashboard', { replace: true })
@@ -375,9 +375,9 @@ export default function Login() {
                     </Button>
                   )}
                 </div>
-                <FieldDescription className="text-center mt-4">
-                  Don&apos;t have an account? <Link to="/register" className="hover:underline">Sign up</Link>
-                </FieldDescription>
+                <div className="text-center mt-4 text-sm">
+                  Don&apos;t have an account? <Link to="/register" className="hover:underline font-semibold">Sign up</Link>
+                </div>
               </div>
             </Tabs>
           </form>
