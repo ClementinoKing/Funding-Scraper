@@ -68,9 +68,14 @@ export default function Profile() {
     const fetchProfile = async () => {
       setLoading(true);
       try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        
         const { data, error } = await supabase
           .from("business_profile_view")
           .select("*")
+          .eq("user_id", user.id)
           .single();
         if (error) {
           setError("Failed to load profile");
